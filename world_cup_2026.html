@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIFA World Cup 2026 - Radial Bracket</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;600;800&display=swap');
+
+        :root {
+            --bg-color: #0b0c10;
+            --accent-gold: #efdfbb;
+            --accent-glow: rgba(239, 223, 187, 0.4);
+            --line-muted: #4a4b50;
+            --line-active: #ffffff;
+            --text-color: #ffffff;
+            --panel-bg: rgba(20, 22, 26, 0.85);
+            --eliminated-grayscale: 0.75;
+            --eliminated-opacity: 0.35;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1a1c23 0%, var(--bg-color) 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .app-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        svg {
+            width: 95vmin;
+            height: 95vmin;
+            user-select: none;
+        }
+
+        /* Connector lines */
+        .bracket-line {
+            fill: none;
+            stroke: var(--line-muted);
+            stroke-width: 2;
+            transition: stroke 0.3s ease, stroke-width 0.3s ease, filter 0.3s ease;
+        }
+
+        .bracket-line.active {
+            stroke: var(--line-active);
+            stroke-width: 3;
+            filter: drop-shadow(0px 0px 6px rgba(255, 255, 255, 0.7));
+        }
+
+        /* Junction dots */
+        .junction-dot {
+            fill: #555;
+            transition: fill 0.3s ease, r 0.3s ease;
+        }
+
+        .junction-dot.active {
+            fill: #fff;
+        }
+
+        /* Flag node groups */
+        .node-flag {
+            cursor: pointer;
+        }
+
+        .node-flag .flag-visual {
+            transition: filter 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: center;
+        }
+
+        .node-flag:hover .flag-visual {
+            filter: drop-shadow(0px 0px 12px var(--accent-gold));
+        }
+
+        /* Invisible hit area */
+        .hit-area {
+            fill: transparent;
+            stroke: none;
+        }
+
+        /* Empty placeholder nodes */
+        .node-empty {
+            fill: #1a1c20;
+            stroke: rgba(255, 255, 255, 0.15);
+            stroke-width: 1.5;
+            stroke-dasharray: 4, 4;
+            cursor: pointer;
+            transition: stroke 0.3s ease, fill 0.3s ease;
+        }
+
+        .node-empty:hover {
+            stroke: var(--accent-gold);
+            fill: #222;
+        }
+
+        .node-empty.active {
+            stroke: rgba(255, 255, 255, 0.5);
+            fill: #1e1e22;
+        }
+
+        /* Node text labels */
+        .node-text {
+            fill: #8e9297;
+            font-size: 9px;
+            font-weight: 600;
+            user-select: none;
+            pointer-events: none;
+            transition: fill 0.3s ease;
+        }
+
+        .node-text.active {
+            fill: #ffffff;
+        }
+
+        /* Center trophy */
+        .center-trophy {
+            filter: drop-shadow(0px 0px 25px rgba(239, 223, 187, 0.6));
+            cursor: pointer;
+        }
+
+        .winner-glow {
+            cursor: pointer;
+            transform-origin: 500px 500px;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .winner-glow:hover {
+            transform: scale(1.06);
+        }
+
+        /* Dynamic Volumetric Aura Pulse */
+        .winner-glow-aura {
+            transform-origin: 500px 500px;
+            animation: auraBreathing 4s infinite alternate ease-in-out;
+        }
+
+        @keyframes auraBreathing {
+            0% {
+                opacity: 0.45;
+                transform: scale(0.92);
+            }
+
+            100% {
+                opacity: 0.9;
+                transform: scale(1.06);
+            }
+        }
+
+        /* Subtle pulsing of the gold border glow */
+        .winner-border-glow {
+            transform-origin: 500px 500px;
+            animation: borderGlowPulse 2.5s infinite alternate ease-in-out;
+        }
+
+        @keyframes borderGlowPulse {
+            0% {
+                opacity: 0.4;
+                transform: scale(0.98);
+            }
+
+            100% {
+                opacity: 0.85;
+                transform: scale(1.02);
+            }
+        }
+
+        /* Sidebar Control Panel */
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        .control-panel.collapsed {
+            transform: translateX(calc(100% + 40px));
+        }
+
+        .panel-toggle {
+            position: absolute;
+            left: -50px;
+            top: 20px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-right: none;
+            color: var(--accent-gold);
+            font-size: 18px;
+            border-radius: 8px 0 0 8px;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            outline: none;
+            transition: color 0.2s;
+        }
+
+        .panel-toggle:hover {
+            color: #ffffff;
+        }
+
+        h3 {
+            margin-bottom: 12px;
+            color: var(--accent-gold);
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 8px;
+        }
+
+        .btn {
+            width: 100%;
+            background: var(--accent-gold);
+            color: #111;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            margin-bottom: 8px;
+        }
+
+        .btn:hover {
+            background: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-danger {
+            background: #d9534f;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c9302c;
+        }
+
+        /* Eliminated team dimming */
+        .node-flag.eliminated .flag-visual {
+            filter: grayscale(calc(var(--eliminated-grayscale) * 100%)) opacity(var(--eliminated-opacity)) !important;
+            transition: filter 0.4s ease;
+        }
+
+        .node-flag.eliminated .flag-visual:hover {
+            filter: grayscale(0%) opacity(1) !important;
+        }
+
+        /* Slider control row */
+        .slider-row {
+            margin: 10px 0 4px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 6px;
+        }
+
+        .slider-label span {
+            color: var(--accent-gold);
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        input[type=range].dim-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: linear-gradient(to right,
+                    var(--accent-gold) 0%,
+                    var(--accent-gold) calc(var(--eliminated-grayscale) * 100%),
+                    rgba(255, 255, 255, 0.15) calc(var(--eliminated-grayscale) * 100%),
+                    rgba(255, 255, 255, 0.15) 100%);
+            outline: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        input[type=range].dim-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-gold);
+            border: 2px solid #111;
+            box-shadow: 0 0 6px rgba(239, 223, 187, 0.6);
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        input[type=range].dim-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+            box-shadow: 0 0 12px rgba(239, 223, 187, 0.9);
+        }
+
+        .instructions {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 12px;
+            line-height: 1.4;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 8px;
+        }
+
+        /* Tooltip */
+        #tooltip {
+            position: absolute;
+            background: rgba(15, 17, 23, 0.95);
+            border: 1px solid var(--accent-gold);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <svg id="bracketSvg" viewBox="0 0 1000 1000">
+            <defs>
+                <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#efdfbb" stop-opacity="0.25" />
+                    <stop offset="100%" stop-color="#1a1c23" stop-opacity="0" />
+                </radialGradient>
+                <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#d4af37" />
+                    <stop offset="25%" stop-color="#fff3a8" />
+                    <stop offset="50%" stop-color="#aa7c11" />
+                    <stop offset="75%" stop-color="#ffe8a3" />
+                    <stop offset="100%" stop-color="#d4af37" />
+                </linearGradient>
+                <radialGradient id="auraGlow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#fff0c2" stop-opacity="0.6" />
+                    <stop offset="25%" stop-color="#d4af37" stop-opacity="0.35" />
+                    <stop offset="60%" stop-color="#aa7c11" stop-opacity="0.1" />
+                    <stop offset="100%" stop-color="#0b0c10" stop-opacity="0" />
+                </radialGradient>
+                <linearGradient id="shimmerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="rgba(255,255,255,0)" />
+                    <stop offset="40%" stop-color="rgba(255,255,255,0)" />
+                    <stop offset="48%" stop-color="rgba(255,255,255,0.4)" />
+                    <stop offset="50%" stop-color="rgba(255,255,255,0.8)" />
+                    <stop offset="52%" stop-color="rgba(255,255,255,0.4)" />
+                    <stop offset="60%" stop-color="rgba(255,255,255,0)" />
+                    <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+                </linearGradient>
+                <filter id="glow-blur" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="8" result="blur" />
+                    <feColorMatrix type="matrix" values="
+                    1 0 0 0 0
+                    0 1 0 0 0
+                    0 0 1 0 0
+                    0 0 0 2 0" />
+                </filter>
+                <filter id="cardShadow" x="-25%" y="-25%" width="150%" height="150%">
+                    <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#000000" flood-opacity="0.65" />
+                </filter>
+            </defs>
+
+            <circle cx="500" cy="500" r="200" fill="url(#centerGlow)" />
+
+            <g id="linksGroup"></g>
+            <g id="junctionDotsGroup"></g>
+            <g id="nodesGroup"></g>
+
+            <!-- Center Trophy -->
+            <g id="trophyGroup" class="center-trophy">
+                <image href="trophy.png" x="410" y="410" width="180" height="180" />
+            </g>
+
+            <!-- Winner overlay -->
+            <g id="winnerGroup" class="winner-glow" style="display: none; cursor: pointer;"></g>
+        </svg>
+
+        <!-- Sidebar Control Panel -->
+        <div class="control-panel collapsed" id="controlPanel">
+            <button class="panel-toggle" id="panelToggle">⚙</button>
+            <h3>Controls</h3>
+            <button class="btn btn-secondary" id="simulateBtn">Quick Simulate</button>
+            <button class="btn btn-danger" id="resetBtn">Reset Bracket</button>
+
+            <div class="slider-row">
+                <div class="slider-label">
+                    <label for="dimSlider">Eliminated Team Dim</label>
+                    <span id="dimValue">75%</span>
+                </div>
+                <input type="range" class="dim-slider" id="dimSlider" min="0" max="100" value="75" step="1"
+                    aria-label="Disqualified team dimming intensity">
+            </div>
+            <div class="instructions">
+                <strong>How to interact:</strong><br>
+                • Hover over a flag to trace its path.<br>
+                • Click a team flag to advance them.<br>
+                • Click the center trophy/flag to reset the final.
+            </div>
+        </div>
+
+        <!-- Tooltip -->
+        <div id="tooltip"></div>
+    </div>
+
+    <script>
+        // ─── Team Data ──────────────────────────────────────────────
+        const initialTeams = [
+            { id: "GER", name: "Germany", flag: "de" },
+            { id: "PAR", name: "Paraguay", flag: "py" },
+            { id: "FRA", name: "France", flag: "fr" },
+            { id: "SWE", name: "Sweden", flag: "se" },
+            { id: "RSA", name: "South Africa", flag: "za" },
+            { id: "CAN", name: "Canada", flag: "ca" },
+            { id: "NED", name: "Netherlands", flag: "nl" },
+            { id: "MAR", name: "Morocco", flag: "ma" },
+            { id: "POR", name: "Portugal", flag: "pt" },
+            { id: "CRO", name: "Croatia", flag: "hr" },
+            { id: "ESP", name: "Spain", flag: "es" },
+            { id: "AUT", name: "Austria", flag: "at" },
+            { id: "USA", name: "United States", flag: "us" },
+            { id: "BIH", name: "Bosnia & Herzegovina", flag: "ba" },
+            { id: "BEL", name: "Belgium", flag: "be" },
+            { id: "SEN", name: "Senegal", flag: "sn" },
+            { id: "BRA", name: "Brazil", flag: "br" },
+            { id: "JPN", name: "Japan", flag: "jp" },
+            { id: "CIV", name: "Ivory Coast", flag: "ci" },
+            { id: "NOR", name: "Norway", flag: "no" },
+            { id: "MEX", name: "Mexico", flag: "mx" },
+            { id: "ECU", name: "Ecuador", flag: "ec" },
+            { id: "ENG", name: "England", flag: "gb-eng" }, // FIXED FLAG CODE
+            { id: "COD", name: "DR Congo", flag: "cd" },
+            { id: "ARG", name: "Argentina", flag: "ar" },
+            { id: "CPV", name: "Cape Verde", flag: "cv" },
+            { id: "AUS", name: "Australia", flag: "au" },
+            { id: "EGY", name: "Egypt", flag: "eg" },
+            { id: "SUI", name: "Switzerland", flag: "ch" },
+            { id: "ALG", name: "Algeria", flag: "dz" },
+            { id: "COL", name: "Colombia", flag: "co" },
+            { id: "GHA", name: "Ghana", flag: "gh" }
+        ];
+
+        // ─── Match Schedule Data (2026 FIFA World Cup) ──────────────
+        const matchDetails = {
+            0: {
+                0: { number: 74, date: "June 29, 2026", location: "Gillette Stadium, Boston" },
+                1: { number: 77, date: "June 30, 2026", location: "MetLife Stadium, New York/New Jersey" },
+                2: { number: 73, date: "June 28, 2026", location: "SoFi Stadium, Los Angeles" },
+                3: { number: 75, date: "June 29, 2026", location: "Estadio BBVA, Monterrey" },
+                4: { number: 83, date: "July 2, 2026", location: "BMO Field, Toronto" },
+                5: { number: 84, date: "July 2, 2026", location: "SoFi Stadium, Los Angeles" },
+                6: { number: 81, date: "July 1, 2026", location: "Levi's Stadium, San Francisco Bay Area" },
+                7: { number: 82, date: "July 1, 2026", location: "Lumen Field, Seattle" },
+                8: { number: 76, date: "June 29, 2026", location: "Houston Stadium, Houston" },
+                9: { number: 78, date: "June 30, 2026", location: "AT&T Stadium, Dallas" },
+                10: { number: 79, date: "June 30, 2026", location: "Estadio Azteca, Mexico City" },
+                11: { number: 80, date: "July 1, 2026", location: "Mercedes-Benz Stadium, Atlanta" },
+                12: { number: 86, date: "July 3, 2026", location: "Hard Rock Stadium, Miami" },
+                13: { number: 88, date: "July 3, 2026", location: "AT&T Stadium, Dallas" },
+                14: { number: 85, date: "July 2, 2026", location: "BC Place, Vancouver" },
+                15: { number: 87, date: "July 3, 2026", location: "GEHA Field at Arrowhead Stadium, Kansas City" }
+            },
+            1: {
+                0: { number: 89, date: "July 4, 2026", location: "Lincoln Financial Field, Philadelphia" },
+                1: { number: 90, date: "July 4, 2026", location: "Houston Stadium, Houston" },
+                2: { number: 93, date: "July 6, 2026", location: "AT&T Stadium, Dallas" },
+                3: { number: 94, date: "July 6, 2026", location: "Lumen Field, Seattle" },
+                4: { number: 91, date: "July 5, 2026", location: "MetLife Stadium, New York/New Jersey" },
+                5: { number: 92, date: "July 5, 2026", location: "Estadio Azteca, Mexico City" },
+                6: { number: 95, date: "July 7, 2026", location: "Mercedes-Benz Stadium, Atlanta" },
+                7: { number: 96, date: "July 7, 2026", location: "BC Place, Vancouver" }
+            },
+            2: {
+                0: { number: 97, date: "July 9, 2026", location: "Gillette Stadium, Boston" },
+                1: { number: 98, date: "July 10, 2026", location: "SoFi Stadium, Los Angeles" },
+                2: { number: 99, date: "July 11, 2026", location: "Hard Rock Stadium, Miami" },
+                3: { number: 100, date: "July 11, 2026", location: "GEHA Field at Arrowhead Stadium, Kansas City" }
+            },
+            3: {
+                0: { number: 101, date: "July 14, 2026", location: "AT&T Stadium, Dallas" },
+                1: { number: 102, date: "July 15, 2026", location: "Mercedes-Benz Stadium, Atlanta" }
+            },
+            4: {
+                0: { number: 104, date: "July 19, 2026", location: "MetLife Stadium, New York/New Jersey" }
+            }
+        };
+
+        // ─── State ──────────────────────────────────────────────────
+        const state = {
+            rounds: [[], [], [], [], []],
+            winner: null
+        };
+
+        // ─── EASY PRESET RESULTS MATRIX ──────────────────────────────
+        // Syntax template: presetResults['winner_id']['loser_id'] = 1;
+        // Case-insensitive, updates dynamically all the way down the line.
+        const presetResults = {};
+
+        presetResults['par'] = { 'ger': 1 };
+        presetResults['can'] = { 'rsa': 1 };
+        presetResults['bra'] = { 'jpn': 1 };
+
+        // ────────────────────────────────────────────────────────────
+
+        const radii = [440, 340, 255, 175, 100];
+        const nodeSize = [20, 20, 20, 20, 20];
+
+        const angles = [];
+        let clipPathCounter = 0;
+
+        function precalculateAngles() {
+            angles[0] = [];
+            for (let s = 0; s < 32; s++) {
+                angles[0][s] = -Math.PI / 2 + (s * 2 * Math.PI) / 32;
+            }
+            for (let r = 1; r < 5; r++) {
+                angles[r] = [];
+                const count = Math.pow(2, 5 - r);
+                for (let s = 0; s < count; s++) {
+                    angles[r][s] = (angles[r - 1][2 * s] + angles[r - 1][2 * s + 1]) / 2;
+                }
+            }
+        }
+
+        // ─── State Management ───────────────────────────────────────
+        function init() {
+            state.rounds[0] = initialTeams.map(t => ({ ...t }));
+            for (let r = 1; r < 5; r++) {
+                state.rounds[r] = Array(Math.pow(2, 5 - r)).fill(null);
+            }
+            state.winner = null;
+
+            // Engine parsing match matrix settings automatically
+            for (let r = 0; r < 4; r++) {
+                const count = Math.pow(2, 4 - r);
+                for (let i = 0; i < count; i++) {
+                    const tA = state.rounds[r][2 * i];
+                    const tB = state.rounds[r][2 * i + 1];
+                    if (tA && tB) {
+                        const idA = tA.id.toLowerCase();
+                        const idB = tB.id.toLowerCase();
+                        if (presetResults[idA] && presetResults[idA][idB] === 1) {
+                            state.rounds[r + 1][i] = tA;
+                        } else if (presetResults[idB] && presetResults[idB][idA] === 1) {
+                            state.rounds[r + 1][i] = tB;
+                        }
+                    }
+                }
+            }
+
+            // Check overall champion placement matches
+            const fA = state.rounds[4][0];
+            const fB = state.rounds[4][1];
+            if (fA && fB) {
+                const idA = fA.id.toLowerCase();
+                const idB = fB.id.toLowerCase();
+                if (presetResults[idA] && presetResults[idA][idB] === 1) state.winner = fA;
+                else if (presetResults[idB] && presetResults[idB][idA] === 1) state.winner = fB;
+            }
+
+            precalculateAngles();
+        }
+
+        function advanceTeam(round, slot, team) {
+            if (!team) return;
+            if (round === 4) {
+                state.winner = team;
+            } else {
+                const nextRound = round + 1;
+                const nextSlot = Math.floor(slot / 2);
+                const cur = state.rounds[nextRound][nextSlot];
+                if (cur && cur.id !== team.id) {
+                    clearDownstream(nextRound, nextSlot, cur.id);
+                }
+                state.rounds[nextRound][nextSlot] = team;
+            }
+            render();
+        }
+
+        function clearDownstream(round, slot, teamId) {
+            if (round === 4) {
+                if (state.winner && state.winner.id === teamId) state.winner = null;
+            } else {
+                const nr = round + 1;
+                const ns = Math.floor(slot / 2);
+                if (state.rounds[nr][ns] && state.rounds[nr][ns].id === teamId) {
+                    clearDownstream(nr, ns, teamId);
+                    state.rounds[nr][ns] = null;
+                }
+            }
+        }
+
+        // ─── Rendering ──────────────────────────────────────────────
+        function render() {
+            const svg = document.getElementById("bracketSvg");
+            const defs = svg.querySelector("defs");
+            const linksGroup = document.getElementById("linksGroup");
+            const dotsGroup = document.getElementById("junctionDotsGroup");
+            const nodesGroup = document.getElementById("nodesGroup");
+
+            linksGroup.innerHTML = "";
+            dotsGroup.innerHTML = "";
+            nodesGroup.innerHTML = "";
+
+            defs.querySelectorAll("clipPath").forEach(cp => cp.remove());
+            clipPathCounter = 0;
+
+            // ── 1. Draw connector lines ─────────────────────────────
+            for (let r = 0; r < 4; r++) {
+                const count = Math.pow(2, 5 - r);
+                const pr = r + 1;
+                const rCurrent = radii[r];
+                const rParent = radii[pr];
+
+                for (let s = 0; s < count; s++) {
+                    const ps = Math.floor(s / 2);
+                    const tC = angles[r][s];
+                    const tP = angles[pr][ps];
+
+                    const xS = 500 + (rCurrent - nodeSize[r]) * Math.cos(tC);
+                    const yS = 500 + (rCurrent - nodeSize[r]) * Math.sin(tC);
+                    const xE = 500 + (rParent + nodeSize[pr]) * Math.cos(tP);
+                    const yE = 500 + (rParent + nodeSize[pr]) * Math.sin(tP);
+
+                    const rM = (rCurrent + rParent) / 2;
+                    const xM1 = 500 + rM * Math.cos(tC);
+                    const yM1 = 500 + rM * Math.sin(tC);
+                    const xM2 = 500 + rM * Math.cos(tP);
+                    const yM2 = 500 + rM * Math.sin(tP);
+
+                    let diff = (tP - tC) % (2 * Math.PI);
+                    if (diff > Math.PI) diff -= 2 * Math.PI;
+                    if (diff < -Math.PI) diff += 2 * Math.PI;
+                    const sweep = diff > 0 ? 1 : 0;
+
+                    const pathData = `M ${xS} ${yS} L ${xM1} ${yM1} A ${rM} ${rM} 0 0 ${sweep} ${xM2} ${yM2} L ${xE} ${yE}`;
+
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", pathData);
+                    path.setAttribute("class", "bracket-line");
+                    path.setAttribute("data-from-round", r);
+                    path.setAttribute("data-from-slot", s);
+                    path.setAttribute("data-to-round", pr);
+                    path.setAttribute("data-to-slot", ps);
+
+                    const cTeam = state.rounds[r][s];
+                    const pTeam = state.rounds[pr][ps];
+                    if (cTeam && pTeam && cTeam.id === pTeam.id) {
+                        path.setAttribute("data-team-id", cTeam.id);
+                    }
+
+                    linksGroup.appendChild(path);
+
+                    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    dot.setAttribute("cx", xM1);
+                    dot.setAttribute("cy", yM1);
+                    dot.setAttribute("r", 3);
+                    dot.setAttribute("class", "junction-dot");
+                    dot.setAttribute("data-from-round", r);
+                    dot.setAttribute("data-from-slot", s);
+                    dotsGroup.appendChild(dot);
+                }
+            }
+
+            // Final-to-center lines
+            for (let s = 0; s < 2; s++) {
+                const tF = angles[4][s];
+                const xS = 500 + (radii[4] - nodeSize[4]) * Math.cos(tF);
+                const yS = 500 + (radii[4] - nodeSize[4]) * Math.sin(tF);
+                const xE = 500 + 60 * Math.cos(tF);
+                const yE = 500 + 60 * Math.sin(tF);
+
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", `M ${xS} ${yS} L ${xE} ${yE}`);
+                path.setAttribute("class", "bracket-line");
+                path.setAttribute("data-from-round", 4);
+                path.setAttribute("data-from-slot", s);
+                path.setAttribute("data-to-round", 5);
+                path.setAttribute("data-to-slot", 0);
+
+                const cTeam = state.rounds[4][s];
+                if (cTeam && state.winner && cTeam.id === state.winner.id) {
+                    path.setAttribute("data-team-id", cTeam.id);
+                }
+                linksGroup.appendChild(path);
+            }
+
+            // ── 2. Draw Nodes ───────────────────────────────────────
+            for (let r = 0; r < 5; r++) {
+                const count = Math.pow(2, 5 - r);
+                const radius = radii[r];
+                const nR = nodeSize[r];
+
+                for (let s = 0; s < count; s++) {
+                    const theta = angles[r][s];
+                    const x = 500 + radius * Math.cos(theta);
+                    const y = 500 + radius * Math.sin(theta);
+                    const team = state.rounds[r][s];
+
+                    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    g.setAttribute("data-round", r);
+                    g.setAttribute("data-slot", s);
+
+                    if (team) {
+                        let isEliminated = false;
+                        if (r === 0) {
+                            const siblingSlot = s % 2 === 0 ? s + 1 : s - 1;
+                            const parentSlot = Math.floor(s / 2);
+                            const advancer = state.rounds[1][parentSlot];
+                            if (advancer && advancer.id !== team.id) {
+                                isEliminated = true;
+                            }
+                        } else {
+                            if (r < 4) {
+                                const parentSlot = Math.floor(s / 2);
+                                const advancer = state.rounds[r + 1][parentSlot];
+                                if (advancer && advancer.id !== team.id) {
+                                    isEliminated = true;
+                                }
+                            } else if (r === 4) {
+                                if (state.winner && state.winner.id !== team.id) {
+                                    isEliminated = true;
+                                }
+                            }
+                        }
+                        g.setAttribute("class", "node-flag" + (isEliminated ? " eliminated" : ""));
+                        g.setAttribute("data-team-id", team.id);
+
+                        const cpId = `clip_${clipPathCounter++}`;
+                        const cp = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+                        cp.setAttribute("id", cpId);
+                        const cpCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        cpCircle.setAttribute("cx", x);
+                        cpCircle.setAttribute("cy", y);
+                        cpCircle.setAttribute("r", nR);
+                        cp.appendChild(cpCircle);
+                        defs.appendChild(cp);
+
+                        const visual = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                        visual.setAttribute("class", "flag-visual");
+
+                        const bg = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        bg.setAttribute("cx", x);
+                        bg.setAttribute("cy", y);
+                        bg.setAttribute("r", nR);
+                        bg.setAttribute("fill", "#ffffff");
+                        visual.appendChild(bg);
+
+                        const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+                        image.setAttribute("href", `https://flagcdn.com/w160/${team.flag.toLowerCase()}.png`);
+                        const imgDim = nR * 2;
+                        image.setAttribute("x", x - imgDim / 2);
+                        image.setAttribute("y", y - imgDim / 2);
+                        image.setAttribute("width", imgDim);
+                        image.setAttribute("height", imgDim);
+                        image.setAttribute("clip-path", `url(#${cpId})`);
+                        image.setAttribute("preserveAspectRatio", "xMidYMid slice");
+                        visual.appendChild(image);
+
+                        const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        ring.setAttribute("cx", x);
+                        ring.setAttribute("cy", y);
+                        ring.setAttribute("r", nR + 1);
+                        ring.setAttribute("fill", "none");
+                        ring.setAttribute("stroke", "rgba(255,255,255,0.25)");
+                        ring.setAttribute("stroke-width", "1.5");
+                        visual.appendChild(ring);
+
+                        g.appendChild(visual);
+
+                        const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        hitArea.setAttribute("cx", x);
+                        hitArea.setAttribute("cy", y);
+                        hitArea.setAttribute("r", nR + 8);
+                        hitArea.setAttribute("class", "hit-area");
+                        g.appendChild(hitArea);
+
+                        g.addEventListener("click", () => advanceTeam(r, s, team));
+                    } else {
+                        g.setAttribute("class", "node-empty-g");
+                        const emptyCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        emptyCircle.setAttribute("cx", x);
+                        emptyCircle.setAttribute("cy", y);
+                        emptyCircle.setAttribute("r", nR);
+                        emptyCircle.setAttribute("class", "node-empty");
+                        emptyCircle.setAttribute("data-round", r);
+                        emptyCircle.setAttribute("data-slot", s);
+                        g.appendChild(emptyCircle);
+                    }
+
+                    if (team && r === 0) {
+                        let angleDeg = (theta * 180) / Math.PI;
+                        let textAnchor = "start";
+                        let labelOffset = nR + 8;
+
+                        if (angleDeg > 90 || angleDeg < -90) {
+                            angleDeg += 180;
+                            textAnchor = "end";
+                            labelOffset = -labelOffset;
+                        }
+
+                        const tg = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                        tg.setAttribute("transform", `translate(${x}, ${y}) rotate(${angleDeg})`);
+
+                        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        text.setAttribute("x", labelOffset);
+                        text.setAttribute("y", 3);
+                        text.setAttribute("text-anchor", textAnchor);
+                        text.setAttribute("class", "node-text");
+                        text.setAttribute("data-team-id-text", team.id);
+                        text.textContent = team.id;
+
+                        tg.appendChild(text);
+                        g.appendChild(tg);
+                    }
+
+                    g.addEventListener("mouseenter", handleMouseEnter);
+                    g.addEventListener("mouseleave", handleMouseLeave);
+                    g.addEventListener("mousemove", handleMouseMove);
+
+                    nodesGroup.appendChild(g);
+                }
+            }
+
+            // ── 3. Winner center ────────────────────────────────────
+            const winnerGroup = document.getElementById("winnerGroup");
+            const trophyGroup = document.getElementById("trophyGroup");
+            winnerGroup.innerHTML = "";
+
+            if (state.winner) {
+                const wcpId = "winnerClipDyn";
+                const oldWcp = defs.querySelector(`#${wcpId}`);
+                if (oldWcp) oldWcp.remove();
+
+                const wcp = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+                wcp.setAttribute("id", wcpId);
+                const wcpR = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                wcpR.setAttribute("x", 440);
+                wcpR.setAttribute("y", 460);
+                wcpR.setAttribute("width", 120);
+                wcpR.setAttribute("height", 80);
+                wcpR.setAttribute("rx", 8);
+                wcpR.setAttribute("ry", 8);
+                wcp.appendChild(wcpR);
+                defs.appendChild(wcp);
+
+                const aura = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                aura.setAttribute("x", 360);
+                aura.setAttribute("y", 410);
+                aura.setAttribute("width", 280);
+                aura.setAttribute("height", 180);
+                aura.setAttribute("rx", 90);
+                aura.setAttribute("ry", 90);
+                aura.setAttribute("fill", "url(#auraGlow)");
+                aura.setAttribute("class", "winner-glow-aura");
+                aura.setAttribute("pointer-events", "none");
+                winnerGroup.appendChild(aura);
+
+                const outerGlowRing = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                outerGlowRing.setAttribute("x", 436);
+                outerGlowRing.setAttribute("y", 456);
+                outerGlowRing.setAttribute("width", 128);
+                outerGlowRing.setAttribute("height", 88);
+                outerGlowRing.setAttribute("rx", 12);
+                outerGlowRing.setAttribute("ry", 12);
+                outerGlowRing.setAttribute("fill", "none");
+                outerGlowRing.setAttribute("stroke", "url(#goldGradient)");
+                outerGlowRing.setAttribute("stroke-width", "6");
+                outerGlowRing.setAttribute("filter", "url(#glow-blur)");
+                outerGlowRing.setAttribute("class", "winner-border-glow");
+                outerGlowRing.setAttribute("pointer-events", "none");
+                winnerGroup.appendChild(outerGlowRing);
+
+                const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                bgRect.setAttribute("x", 438);
+                bgRect.setAttribute("y", 458);
+                bgRect.setAttribute("width", 124);
+                bgRect.setAttribute("height", 84);
+                bgRect.setAttribute("rx", 10);
+                bgRect.setAttribute("ry", 10);
+                bgRect.setAttribute("fill", "#14161a");
+                bgRect.setAttribute("filter", "url(#cardShadow)");
+                winnerGroup.appendChild(bgRect);
+
+                const wImg = document.createElementNS("http://www.w3.org/2000/svg", "image");
+                wImg.setAttribute("href", `https://flagcdn.com/w160/${state.winner.flag.toLowerCase()}.png`);
+                wImg.setAttribute("x", 440);
+                wImg.setAttribute("y", 460);
+                wImg.setAttribute("width", 120);
+                wImg.setAttribute("height", 80);
+                wImg.setAttribute("clip-path", `url(#${wcpId})`);
+                wImg.setAttribute("preserveAspectRatio", "xMidYMid slice");
+                winnerGroup.appendChild(wImg);
+
+                const shimmerRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                shimmerRect.setAttribute("x", 440);
+                shimmerRect.setAttribute("y", 460);
+                shimmerRect.setAttribute("width", 120);
+                shimmerRect.setAttribute("height", 80);
+                shimmerRect.setAttribute("fill", "url(#shimmerGradient)");
+                shimmerRect.setAttribute("clip-path", `url(#${wcpId})`);
+                shimmerRect.setAttribute("pointer-events", "none");
+
+                const anim = document.createElementNS("http://www.w3.org/2000/svg", "animate");
+                anim.setAttribute("attributeName", "x");
+                anim.setAttribute("values", "300; 300; 600; 600");
+                anim.setAttribute("keyTimes", "0; 0.2; 0.6; 1");
+                anim.setAttribute("keySplines", "0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1");
+                anim.setAttribute("calcMode", "spline");
+                anim.setAttribute("dur", "4.5s");
+                anim.setAttribute("repeatCount", "indefinite");
+                shimmerRect.appendChild(anim);
+                winnerGroup.appendChild(shimmerRect);
+
+                const innerBevel = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                innerBevel.setAttribute("x", 440);
+                innerBevel.setAttribute("y", 460);
+                innerBevel.setAttribute("width", 120);
+                innerBevel.setAttribute("height", 80);
+                innerBevel.setAttribute("rx", 8);
+                innerBevel.setAttribute("ry", 8);
+                innerBevel.setAttribute("fill", "none");
+                innerBevel.setAttribute("stroke", "rgba(255, 255, 255, 0.2)");
+                innerBevel.setAttribute("stroke-width", "1");
+                innerBevel.setAttribute("pointer-events", "none");
+                winnerGroup.appendChild(innerBevel);
+
+                const wRing = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                wRing.setAttribute("x", 438);
+                wRing.setAttribute("y", 458);
+                wRing.setAttribute("width", 124);
+                wRing.setAttribute("height", 84);
+                wRing.setAttribute("rx", 10);
+                wRing.setAttribute("ry", 10);
+                wRing.setAttribute("fill", "none");
+                wRing.setAttribute("stroke", "url(#goldGradient)");
+                wRing.setAttribute("stroke-width", "3");
+                winnerGroup.appendChild(wRing);
+
+                winnerGroup.style.display = "block";
+                trophyGroup.style.display = "none";
+            } else {
+                winnerGroup.style.display = "none";
+                trophyGroup.style.display = "block";
+            }
+        }
+
+        // ─── Hover Highlighting ─────────────────────────────────────
+        function highlightSubtree(round, slot) {
+            const circle = document.querySelector(`.node-empty[data-round="${round}"][data-slot="${slot}"]`);
+            if (circle) circle.classList.add("active");
+
+            if (round > 0) {
+                const cr = round - 1;
+                const cs1 = slot * 2;
+                const cs2 = slot * 2 + 1;
+
+                document.querySelectorAll(`.bracket-line[data-from-round="${cr}"][data-from-slot="${cs1}"]`).forEach(el => el.classList.add("active"));
+                document.querySelectorAll(`.bracket-line[data-from-round="${cr}"][data-from-slot="${cs2}"]`).forEach(el => el.classList.add("active"));
+                document.querySelectorAll(`.junction-dot[data-from-round="${cr}"][data-from-slot="${cs1}"]`).forEach(el => el.classList.add("active"));
+                document.querySelectorAll(`.junction-dot[data-from-round="${cr}"][data-from-slot="${cs2}"]`).forEach(el => el.classList.add("active"));
+
+                highlightSubtree(cr, cs1);
+                highlightSubtree(cr, cs2);
+            }
+        }
+
+        function handleMouseEnter(e) {
+            const g = e.currentTarget;
+            const teamId = g.dataset.teamId;
+            const round = parseInt(g.dataset.round);
+            const slot = parseInt(g.dataset.slot);
+
+            clearHighlights();
+
+            if (teamId) {
+                document.querySelectorAll(`.bracket-line[data-team-id="${teamId}"]`).forEach(el => el.classList.add("active"));
+                document.querySelectorAll(`.node-text[data-team-id-text="${teamId}"]`).forEach(el => el.classList.add("active"));
+                document.querySelectorAll(`.bracket-line[data-team-id="${teamId}"]`).forEach(line => {
+                    const fr = line.getAttribute("data-from-round");
+                    const fs = line.getAttribute("data-from-slot");
+                    document.querySelectorAll(`.junction-dot[data-from-round="${fr}"][data-from-slot="${fs}"]`).forEach(d => d.classList.add("active"));
+                });
+            } else {
+                highlightSubtree(round, slot);
+            }
+
+            const tooltip = document.getElementById("tooltip");
+            const matchIdx = Math.floor(slot / 2);
+            const match = matchDetails[round] ? matchDetails[round][matchIdx] : null;
+            let matchInfoHtml = "";
+
+            if (match) {
+                matchInfoHtml = `
+                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 11px; color: var(--accent-gold); line-height: 1.4;">
+                        <strong>Match #${match.number}</strong><br>
+                        📅 ${match.date}<br>
+                        📍 ${match.location}
+                    </div>
+                `;
+            }
+
+            if (teamId) {
+                const team = initialTeams.find(t => t.id === teamId) || { name: teamId };
+                tooltip.innerHTML = `<strong>${team.name}</strong> (${teamId})<br>Click to advance to next round` + matchInfoHtml;
+            } else {
+                tooltip.innerHTML = `<em>Match Pending</em><br>Click winner of previous round to decide` + matchInfoHtml;
+            }
+            tooltip.style.display = "block";
+        }
+
+        function handleMouseLeave() {
+            clearHighlights();
+            document.getElementById("tooltip").style.display = "none";
+        }
+
+        function handleMouseMove(e) {
+            const tooltip = document.getElementById("tooltip");
+            tooltip.style.left = (e.pageX + 15) + "px";
+            tooltip.style.top = (e.pageY + 15) + "px";
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll(".bracket-line").forEach(el => el.classList.remove("active"));
+            document.querySelectorAll(".node-text").forEach(el => el.classList.remove("active"));
+            document.querySelectorAll(".node-empty").forEach(el => el.classList.remove("active"));
+            document.querySelectorAll(".junction-dot").forEach(el => el.classList.remove("active"));
+        }
+
+        function simulateSlot(round, slot) {
+            if (round === 0) return state.rounds[0][slot];
+            if (state.rounds[round][slot]) return state.rounds[round][slot];
+            const c1 = simulateSlot(round - 1, slot * 2);
+            const c2 = simulateSlot(round - 1, slot * 2 + 1);
+            if (!c1 && !c2) return null;
+            if (!c1) return c2;
+            if (!c2) return c1;
+            const winner = Math.random() > 0.5 ? c1 : c2;
+            state.rounds[round][slot] = winner;
+            return winner;
+        }
+
+        function quickSimulate() {
+            for (let r = 1; r < 5; r++) {
+                const count = Math.pow(2, 5 - r);
+                for (let s = 0; s < count; s++) simulateSlot(r, s);
+            }
+            if (state.rounds[4][0] && state.rounds[4][1]) {
+                state.winner = Math.random() > 0.5 ? state.rounds[4][0] : state.rounds[4][1];
+            }
+            render();
+        }
+
+        const controlPanel = document.getElementById("controlPanel");
+        const panelToggle = document.getElementById("panelToggle");
+        panelToggle.addEventListener("click", () => {
+            controlPanel.classList.toggle("collapsed");
+            panelToggle.textContent = controlPanel.classList.contains("collapsed") ? "⚙" : "→";
+        });
+
+        document.getElementById("winnerGroup").addEventListener("click", () => {
+            state.winner = null;
+            render();
+        });
+
+        document.getElementById("simulateBtn").addEventListener("click", quickSimulate);
+        document.getElementById("resetBtn").addEventListener("click", () => { init(); render(); });
+
+        const dimSlider = document.getElementById("dimSlider");
+        const dimValue = document.getElementById("dimValue");
+
+        function applyDimming(val) {
+            const pct = val / 100;
+            document.documentElement.style.setProperty("--eliminated-grayscale", pct);
+            document.documentElement.style.setProperty("--eliminated-opacity", Math.max(0.05, 1 - pct * 0.85));
+            dimValue.textContent = val + "%";
+            dimSlider.style.background = `linear-gradient(
+                to right,
+                var(--accent-gold) 0%,
+                var(--accent-gold) ${val}%,
+                rgba(255,255,255,0.15) ${val}%,
+                rgba(255,255,255,0.15) 100%
+            )`;
+        }
+
+        dimSlider.addEventListener("input", () => applyDimming(parseInt(dimSlider.value)));
+        applyDimming(75);
+
+        init();
+        render();
+    </script>
+</body>
+
+</html>
