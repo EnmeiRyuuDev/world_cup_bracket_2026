@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FIFA World Cup 2026 - Radial Bracket</title>
+    <link rel="icon" type="image/svg+xml" href="world_cup_icon.svg">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;600;800&display=swap');
 
@@ -84,10 +85,12 @@
         .node-flag .flag-visual {
             transition: filter 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             transform-origin: center;
+            transform-box: fill-box;
         }
 
         .node-flag:hover .flag-visual {
-            filter: drop-shadow(0px 0px 12px var(--accent-gold));
+            filter: drop-shadow(0px 0px 14px var(--accent-gold));
+            transform: scale(1.3);
         }
 
         /* Invisible hit area */
@@ -134,6 +137,13 @@
         .center-trophy {
             filter: drop-shadow(0px 0px 25px rgba(239, 223, 187, 0.6));
             cursor: pointer;
+            transition: filter 0.4s ease;
+        }
+
+        .center-trophy:hover {
+            filter: drop-shadow(0px 0px 18px rgba(239, 223, 187, 1))
+                    drop-shadow(0px 0px 45px rgba(239, 223, 187, 0.7))
+                    drop-shadow(0px 0px 80px rgba(239, 180, 50, 0.4));
         }
 
         .winner-glow {
@@ -555,7 +565,7 @@
         presetResults['mar'] = { 'ned': 1 };
         presetResults['fra'] = { 'swe': 1 };
         presetResults['mex'] = { 'ecu': 1 };
-        
+
 
         // ────────────────────────────────────────────────────────────
 
@@ -690,23 +700,36 @@
                     if (diff < -Math.PI) diff += 2 * Math.PI;
                     const sweep = diff > 0 ? 1 : 0;
 
-                    const pathData = `M ${xS} ${yS} L ${xM1} ${yM1} A ${rM} ${rM} 0 0 ${sweep} ${xM2} ${yM2} L ${xE} ${yE}`;
-
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    path.setAttribute("d", pathData);
-                    path.setAttribute("class", "bracket-line");
-                    path.setAttribute("data-from-round", r);
-                    path.setAttribute("data-from-slot", s);
-                    path.setAttribute("data-to-round", pr);
-                    path.setAttribute("data-to-slot", ps);
+                    const branchPathData = `M ${xS} ${yS} L ${xM1} ${yM1} A ${rM} ${rM} 0 0 ${sweep} ${xM2} ${yM2}`;
+                    const branchPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    branchPath.setAttribute("d", branchPathData);
+                    branchPath.setAttribute("class", "bracket-line");
+                    branchPath.setAttribute("data-from-round", r);
+                    branchPath.setAttribute("data-from-slot", s);
+                    branchPath.setAttribute("data-to-round", pr);
+                    branchPath.setAttribute("data-to-slot", ps);
 
                     const cTeam = state.rounds[r][s];
                     const pTeam = state.rounds[pr][ps];
                     if (cTeam && pTeam && cTeam.id === pTeam.id) {
-                        path.setAttribute("data-team-id", cTeam.id);
+                        branchPath.setAttribute("data-team-id", cTeam.id);
                     }
+                    linksGroup.appendChild(branchPath);
 
-                    linksGroup.appendChild(path);
+                    if (s % 2 === 0) {
+                        const stemPathData = `M ${xM2} ${yM2} L ${xE} ${yE}`;
+                        const stemPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        stemPath.setAttribute("d", stemPathData);
+                        stemPath.setAttribute("class", "bracket-line");
+                        stemPath.setAttribute("data-type", "stem");
+                        stemPath.setAttribute("data-to-round", pr);
+                        stemPath.setAttribute("data-to-slot", ps);
+
+                        if (pTeam) {
+                            stemPath.setAttribute("data-team-id", pTeam.id);
+                        }
+                        linksGroup.appendChild(stemPath);
+                    }
 
                     const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                     dot.setAttribute("cx", xM1);
@@ -1002,10 +1025,272 @@
             }
         }
 
+        // ─── Match History Data (hardcoded, simulation-independent) ──
+        // Flags for non-bracket group-stage opponents
+        const extraFlags = {
+            "KOR": "kr", "CZE": "cz", "QAT": "qa", "HAI": "ht",
+            "SCO": "gb-sct", "TUR": "tr", "CUR": "cw", "TUN": "tn",
+            "IRN": "ir", "NZL": "nz", "KSA": "sa", "URU": "uy",
+            "IRQ": "iq", "JOR": "jo", "UZB": "uz", "PAN": "pa"
+        };
+
+        // Per-team match history — latest match first
+        // home / away reflect who was the "home" team in each match
+        const teamMatchHistory = {
+            // ── Group A teams ─────────────────────────────────────────
+            "MEX": [
+                { home: "MEX", away: "ECU", homeScore: 2, awayScore: 0,                              date: "Jun 30", stage: "R32"     },
+                { home: "CZE", away: "MEX", homeScore: 0, awayScore: 3,                              date: "Jun 24", stage: "Group A" },
+                { home: "MEX", away: "KOR", homeScore: 1, awayScore: 0,                              date: "Jun 18", stage: "Group A" },
+                { home: "MEX", away: "RSA", homeScore: 2, awayScore: 0,                              date: "Jun 11", stage: "Group A" }
+            ],
+            "RSA": [
+                { home: "RSA", away: "CAN", homeScore: 0, awayScore: 1,                              date: "Jun 28", stage: "R32"     },
+                { home: "RSA", away: "KOR", homeScore: 1, awayScore: 0,                              date: "Jun 24", stage: "Group A" },
+                { home: "CZE", away: "RSA", homeScore: 1, awayScore: 1,                              date: "Jun 18", stage: "Group A" },
+                { home: "MEX", away: "RSA", homeScore: 2, awayScore: 0,                              date: "Jun 11", stage: "Group A" }
+            ],
+            // ── Group B teams ─────────────────────────────────────────
+            "SUI": [
+                { home: "SUI", away: "CAN", homeScore: 2, awayScore: 1,                              date: "Jun 24", stage: "Group B" },
+                { home: "SUI", away: "BIH", homeScore: 4, awayScore: 1,                              date: "Jun 18", stage: "Group B" },
+                { home: "QAT", away: "SUI", homeScore: 1, awayScore: 1,                              date: "Jun 13", stage: "Group B" }
+            ],
+            "CAN": [
+                { home: "RSA", away: "CAN", homeScore: 0, awayScore: 1,                              date: "Jun 28", stage: "R32"     },
+                { home: "SUI", away: "CAN", homeScore: 2, awayScore: 1,                              date: "Jun 24", stage: "Group B" },
+                { home: "CAN", away: "QAT", homeScore: 6, awayScore: 0,                              date: "Jun 18", stage: "Group B" },
+                { home: "CAN", away: "BIH", homeScore: 1, awayScore: 1,                              date: "Jun 12", stage: "Group B" }
+            ],
+            "BIH": [
+                { home: "BIH", away: "QAT", homeScore: 3, awayScore: 1,                              date: "Jun 24", stage: "Group B" },
+                { home: "SUI", away: "BIH", homeScore: 4, awayScore: 1,                              date: "Jun 18", stage: "Group B" },
+                { home: "CAN", away: "BIH", homeScore: 1, awayScore: 1,                              date: "Jun 12", stage: "Group B" }
+            ],
+            // ── Group C teams ─────────────────────────────────────────
+            "BRA": [
+                { home: "BRA", away: "JPN", homeScore: 2, awayScore: 1,                              date: "Jun 29", stage: "R32"     },
+                { home: "SCO", away: "BRA", homeScore: 0, awayScore: 3,                              date: "Jun 24", stage: "Group C" },
+                { home: "BRA", away: "HAI", homeScore: 3, awayScore: 0,                              date: "Jun 19", stage: "Group C" },
+                { home: "BRA", away: "MAR", homeScore: 1, awayScore: 1,                              date: "Jun 13", stage: "Group C" }
+            ],
+            "MAR": [
+                { home: "NED", away: "MAR", homeScore: 1, awayScore: 1, penaltyHome: 2, penaltyAway: 3, date: "Jun 29", stage: "R32"     },
+                { home: "MAR", away: "HAI", homeScore: 4, awayScore: 2,                              date: "Jun 24", stage: "Group C" },
+                { home: "SCO", away: "MAR", homeScore: 0, awayScore: 1,                              date: "Jun 19", stage: "Group C" },
+                { home: "BRA", away: "MAR", homeScore: 1, awayScore: 1,                              date: "Jun 13", stage: "Group C" }
+            ],
+            // ── Group D teams ─────────────────────────────────────────
+            "USA": [
+                { home: "TUR", away: "USA", homeScore: 3, awayScore: 2,                              date: "Jun 25", stage: "Group D" },
+                { home: "USA", away: "AUS", homeScore: 2, awayScore: 0,                              date: "Jun 19", stage: "Group D" },
+                { home: "USA", away: "PAR", homeScore: 4, awayScore: 1,                              date: "Jun 12", stage: "Group D" }
+            ],
+            "PAR": [
+                { home: "GER", away: "PAR", homeScore: 1, awayScore: 1, penaltyHome: 3, penaltyAway: 4, date: "Jun 29", stage: "R32"     },
+                { home: "PAR", away: "AUS", homeScore: 0, awayScore: 0,                              date: "Jun 25", stage: "Group D" },
+                { home: "TUR", away: "PAR", homeScore: 0, awayScore: 1,                              date: "Jun 19", stage: "Group D" },
+                { home: "USA", away: "PAR", homeScore: 4, awayScore: 1,                              date: "Jun 12", stage: "Group D" }
+            ],
+            "AUS": [
+                { home: "PAR", away: "AUS", homeScore: 0, awayScore: 0,                              date: "Jun 25", stage: "Group D" },
+                { home: "USA", away: "AUS", homeScore: 2, awayScore: 0,                              date: "Jun 19", stage: "Group D" },
+                { home: "AUS", away: "TUR", homeScore: 2, awayScore: 0,                              date: "Jun 13", stage: "Group D" }
+            ],
+            // ── Group E teams ─────────────────────────────────────────
+            "GER": [
+                { home: "GER", away: "PAR", homeScore: 1, awayScore: 1, penaltyHome: 3, penaltyAway: 4, date: "Jun 29", stage: "R32"     },
+                { home: "ECU", away: "GER", homeScore: 2, awayScore: 1,                              date: "Jun 25", stage: "Group E" },
+                { home: "GER", away: "CIV", homeScore: 2, awayScore: 1,                              date: "Jun 20", stage: "Group E" },
+                { home: "GER", away: "CUR", homeScore: 7, awayScore: 1,                              date: "Jun 14", stage: "Group E" }
+            ],
+            "CIV": [
+                { home: "CIV", away: "NOR", homeScore: 1, awayScore: 2,                              date: "Jun 30", stage: "R32"     },
+                { home: "CUR", away: "CIV", homeScore: 0, awayScore: 2,                              date: "Jun 25", stage: "Group E" },
+                { home: "GER", away: "CIV", homeScore: 2, awayScore: 1,                              date: "Jun 20", stage: "Group E" },
+                { home: "CIV", away: "ECU", homeScore: 1, awayScore: 0,                              date: "Jun 14", stage: "Group E" }
+            ],
+            "ECU": [
+                { home: "MEX", away: "ECU", homeScore: 2, awayScore: 0,                              date: "Jun 30", stage: "R32"     },
+                { home: "ECU", away: "GER", homeScore: 2, awayScore: 1,                              date: "Jun 25", stage: "Group E" },
+                { home: "ECU", away: "CUR", homeScore: 0, awayScore: 0,                              date: "Jun 20", stage: "Group E" },
+                { home: "CIV", away: "ECU", homeScore: 1, awayScore: 0,                              date: "Jun 14", stage: "Group E" }
+            ],
+            // ── Group F teams ─────────────────────────────────────────
+            "NED": [
+                { home: "NED", away: "MAR", homeScore: 1, awayScore: 1, penaltyHome: 2, penaltyAway: 3, date: "Jun 29", stage: "R32"     },
+                { home: "TUN", away: "NED", homeScore: 1, awayScore: 3,                              date: "Jun 25", stage: "Group F" },
+                { home: "NED", away: "SWE", homeScore: 5, awayScore: 1,                              date: "Jun 20", stage: "Group F" },
+                { home: "NED", away: "JPN", homeScore: 2, awayScore: 2,                              date: "Jun 14", stage: "Group F" }
+            ],
+            "JPN": [
+                { home: "BRA", away: "JPN", homeScore: 2, awayScore: 1,                              date: "Jun 29", stage: "R32"     },
+                { home: "JPN", away: "SWE", homeScore: 1, awayScore: 1,                              date: "Jun 25", stage: "Group F" },
+                { home: "TUN", away: "JPN", homeScore: 0, awayScore: 4,                              date: "Jun 20", stage: "Group F" },
+                { home: "NED", away: "JPN", homeScore: 2, awayScore: 2,                              date: "Jun 14", stage: "Group F" }
+            ],
+            "SWE": [
+                { home: "FRA", away: "SWE", homeScore: 3, awayScore: 0,                              date: "Jun 30", stage: "R32"     },
+                { home: "JPN", away: "SWE", homeScore: 1, awayScore: 1,                              date: "Jun 25", stage: "Group F" },
+                { home: "NED", away: "SWE", homeScore: 5, awayScore: 1,                              date: "Jun 20", stage: "Group F" },
+                { home: "SWE", away: "TUN", homeScore: 5, awayScore: 1,                              date: "Jun 14", stage: "Group F" }
+            ],
+            // ── Group G teams ─────────────────────────────────────────
+            "BEL": [
+                { home: "NZL", away: "BEL", homeScore: 1, awayScore: 5,                              date: "Jun 26", stage: "Group G" },
+                { home: "BEL", away: "IRN", homeScore: 0, awayScore: 0,                              date: "Jun 21", stage: "Group G" },
+                { home: "BEL", away: "EGY", homeScore: 1, awayScore: 1,                              date: "Jun 15", stage: "Group G" }
+            ],
+            "EGY": [
+                { home: "EGY", away: "IRN", homeScore: 1, awayScore: 1,                              date: "Jun 26", stage: "Group G" },
+                { home: "NZL", away: "EGY", homeScore: 1, awayScore: 3,                              date: "Jun 21", stage: "Group G" },
+                { home: "BEL", away: "EGY", homeScore: 1, awayScore: 1,                              date: "Jun 15", stage: "Group G" }
+            ],
+            // ── Group H teams ─────────────────────────────────────────
+            "ESP": [
+                { home: "URU", away: "ESP", homeScore: 0, awayScore: 1,                              date: "Jun 26", stage: "Group H" },
+                { home: "ESP", away: "KSA", homeScore: 4, awayScore: 0,                              date: "Jun 21", stage: "Group H" },
+                { home: "ESP", away: "CPV", homeScore: 0, awayScore: 0,                              date: "Jun 15", stage: "Group H" }
+            ],
+            "CPV": [
+                { home: "CPV", away: "KSA", homeScore: 0, awayScore: 0,                              date: "Jun 26", stage: "Group H" },
+                { home: "URU", away: "CPV", homeScore: 2, awayScore: 2,                              date: "Jun 21", stage: "Group H" },
+                { home: "ESP", away: "CPV", homeScore: 0, awayScore: 0,                              date: "Jun 15", stage: "Group H" }
+            ],
+            // ── Group I teams ─────────────────────────────────────────
+            "FRA": [
+                { home: "FRA", away: "SWE", homeScore: 3, awayScore: 0,                              date: "Jun 30", stage: "R32"     },
+                { home: "NOR", away: "FRA", homeScore: 1, awayScore: 4,                              date: "Jun 26", stage: "Group I" },
+                { home: "FRA", away: "IRQ", homeScore: 3, awayScore: 0,                              date: "Jun 22", stage: "Group I" },
+                { home: "FRA", away: "SEN", homeScore: 3, awayScore: 1,                              date: "Jun 16", stage: "Group I" }
+            ],
+            "NOR": [
+                { home: "CIV", away: "NOR", homeScore: 1, awayScore: 2,                              date: "Jun 30", stage: "R32"     },
+                { home: "NOR", away: "FRA", homeScore: 1, awayScore: 4,                              date: "Jun 26", stage: "Group I" },
+                { home: "NOR", away: "SEN", homeScore: 3, awayScore: 2,                              date: "Jun 22", stage: "Group I" },
+                { home: "IRQ", away: "NOR", homeScore: 1, awayScore: 4,                              date: "Jun 16", stage: "Group I" }
+            ],
+            "SEN": [
+                { home: "SEN", away: "IRQ", homeScore: 5, awayScore: 0,                              date: "Jun 26", stage: "Group I" },
+                { home: "NOR", away: "SEN", homeScore: 3, awayScore: 2,                              date: "Jun 22", stage: "Group I" },
+                { home: "FRA", away: "SEN", homeScore: 3, awayScore: 1,                              date: "Jun 16", stage: "Group I" }
+            ],
+            // ── Group J teams ─────────────────────────────────────────
+            "ARG": [
+                { home: "JOR", away: "ARG", homeScore: 1, awayScore: 3,                              date: "Jun 27", stage: "Group J" },
+                { home: "ARG", away: "AUT", homeScore: 2, awayScore: 0,                              date: "Jun 22", stage: "Group J" },
+                { home: "ARG", away: "ALG", homeScore: 3, awayScore: 0,                              date: "Jun 16", stage: "Group J" }
+            ],
+            "ALG": [
+                { home: "ALG", away: "AUT", homeScore: 3, awayScore: 3,                              date: "Jun 27", stage: "Group J" },
+                { home: "JOR", away: "ALG", homeScore: 1, awayScore: 2,                              date: "Jun 22", stage: "Group J" },
+                { home: "ARG", away: "ALG", homeScore: 3, awayScore: 0,                              date: "Jun 16", stage: "Group J" }
+            ],
+            "AUT": [
+                { home: "ALG", away: "AUT", homeScore: 3, awayScore: 3,                              date: "Jun 27", stage: "Group J" },
+                { home: "ARG", away: "AUT", homeScore: 2, awayScore: 0,                              date: "Jun 22", stage: "Group J" },
+                { home: "AUT", away: "JOR", homeScore: 3, awayScore: 1,                              date: "Jun 16", stage: "Group J" }
+            ],
+            // ── Group K teams ─────────────────────────────────────────
+            "POR": [
+                { home: "COL", away: "POR", homeScore: 0, awayScore: 0,                              date: "Jun 27", stage: "Group K" },
+                { home: "POR", away: "UZB", homeScore: 5, awayScore: 0,                              date: "Jun 23", stage: "Group K" },
+                { home: "POR", away: "COD", homeScore: 1, awayScore: 1,                              date: "Jun 17", stage: "Group K" }
+            ],
+            "COD": [
+                { home: "COD", away: "UZB", homeScore: 3, awayScore: 1,                              date: "Jun 27", stage: "Group K" },
+                { home: "COL", away: "COD", homeScore: 1, awayScore: 0,                              date: "Jun 23", stage: "Group K" },
+                { home: "POR", away: "COD", homeScore: 1, awayScore: 1,                              date: "Jun 17", stage: "Group K" }
+            ],
+            "COL": [
+                { home: "COL", away: "POR", homeScore: 0, awayScore: 0,                              date: "Jun 27", stage: "Group K" },
+                { home: "COL", away: "COD", homeScore: 1, awayScore: 0,                              date: "Jun 23", stage: "Group K" },
+                { home: "UZB", away: "COL", homeScore: 1, awayScore: 3,                              date: "Jun 17", stage: "Group K" }
+            ],
+            // ── Group L teams ─────────────────────────────────────────
+            "ENG": [
+                { home: "PAN", away: "ENG", homeScore: 0, awayScore: 2,                              date: "Jun 27", stage: "Group L" },
+                { home: "ENG", away: "GHA", homeScore: 0, awayScore: 0,                              date: "Jun 23", stage: "Group L" },
+                { home: "ENG", away: "CRO", homeScore: 4, awayScore: 2,                              date: "Jun 17", stage: "Group L" }
+            ],
+            "CRO": [
+                { home: "CRO", away: "GHA", homeScore: 2, awayScore: 1,                              date: "Jun 27", stage: "Group L" },
+                { home: "PAN", away: "CRO", homeScore: 0, awayScore: 1,                              date: "Jun 23", stage: "Group L" },
+                { home: "ENG", away: "CRO", homeScore: 4, awayScore: 2,                              date: "Jun 17", stage: "Group L" }
+            ],
+            "GHA": [
+                { home: "CRO", away: "GHA", homeScore: 2, awayScore: 1,                              date: "Jun 27", stage: "Group L" },
+                { home: "ENG", away: "GHA", homeScore: 0, awayScore: 0,                              date: "Jun 23", stage: "Group L" },
+                { home: "GHA", away: "PAN", homeScore: 1, awayScore: 0,                              date: "Jun 17", stage: "Group L" }
+            ]
+        };
+
+        function getTeamFlag(teamId) {
+            const t = initialTeams.find(x => x.id === teamId);
+            if (t) return t.flag.toLowerCase();
+            return extraFlags[teamId] || "";
+        }
+
+        function getPreviousMatchesForTeam(teamId) {
+            return teamMatchHistory[teamId] || [];
+        }
+
+        function renderMatchLine(homeId, homeScore, awayScore, awayId, penaltyHome, penaltyAway, dateLabel, stageLabel, viewedTeam) {
+            const homeFlag = getTeamFlag(homeId);
+            const awayFlag = getTeamFlag(awayId);
+            const homeFlagHtml = `<img src="https://flagcdn.com/w40/${homeFlag}.png" style="width: 18px; height: 12px; object-fit: cover; vertical-align: middle; border: 1px solid rgba(255,255,255,0.15); border-radius: 2px;" alt="${homeId}">`;
+            const awayFlagHtml = `<img src="https://flagcdn.com/w40/${awayFlag}.png" style="width: 18px; height: 12px; object-fit: cover; vertical-align: middle; border: 1px solid rgba(255,255,255,0.15); border-radius: 2px;" alt="${awayId}">`;
+            let scoreStr = `${homeScore} \u2013 ${awayScore}`;
+            if (penaltyHome !== undefined && penaltyAway !== undefined) {
+                scoreStr += ` <span style="font-size:9px;color:#aaa">(${penaltyHome}-${penaltyAway}p)</span>`;
+            }
+
+            // Compute result emoji relative to the viewed team
+            let resultEmoji = '';
+            if (viewedTeam) {
+                const isHome = viewedTeam === homeId;
+                let won, drew;
+                if (penaltyHome !== undefined && penaltyAway !== undefined) {
+                    // Penalty shootout decides the winner
+                    won  = isHome ? penaltyHome > penaltyAway : penaltyAway > penaltyHome;
+                    drew = false;
+                } else {
+                    won  = isHome ? homeScore > awayScore : awayScore > homeScore;
+                    drew = homeScore === awayScore;
+                }
+                resultEmoji = won ? '\u2705' : (drew ? '\uD83D\uDFF0' : '\u274C');
+            }
+
+            const stageBadge = stageLabel ? `<span style="font-size:9px;color:#888;margin-left:4px">${stageLabel}</span>` : '';
+            const dateBadge  = dateLabel  ? `<span style="font-size:9px;color:#888">${dateLabel}</span>`  : '';
+            const resultBadge = resultEmoji ? `<span style="margin-right:4px;font-size:10px;line-height:1">${resultEmoji}</span>` : '';
+            return `
+                <div style="margin-top: 6px;">
+                    ${(resultEmoji || dateLabel || stageLabel) ? `<div style="font-size:9px;color:#888;margin-bottom:2px;display:flex;align-items:center;gap:2px">${resultBadge}${dateBadge}${stageBadge}</div>` : ''}
+                    <div style="display: flex; align-items: center; font-family: monospace; font-size: 11px;">
+                        <div style="display: flex; align-items: center; width: 70px; justify-content: flex-end; gap: 6px;">
+                            ${homeFlagHtml}
+                            <span style="font-weight: 600;">${homeId}</span>
+                        </div>
+                        <div style="min-width: 55px; padding: 0 10px; text-align: center; font-weight: 800; color: var(--accent-gold); font-size: 12px; white-space: nowrap;">
+                            ${scoreStr}
+                        </div>
+                        <div style="display: flex; align-items: center; width: 70px; justify-content: flex-start; gap: 6px;">
+                            <span style="font-weight: 600;">${awayId}</span>
+                            ${awayFlagHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         // ─── Hover Highlighting ─────────────────────────────────────
         function highlightSubtree(round, slot) {
             const circle = document.querySelector(`.node-empty[data-round="${round}"][data-slot="${slot}"]`);
             if (circle) circle.classList.add("active");
+
+            // Highlight the stem leading into this node if applicable
+            document.querySelectorAll(`.bracket-line[data-to-round="${round}"][data-to-slot="${slot}"][data-type="stem"]`).forEach(el => el.classList.add("active"));
 
             if (round > 0) {
                 const cr = round - 1;
@@ -1036,7 +1321,9 @@
                 document.querySelectorAll(`.bracket-line[data-team-id="${teamId}"]`).forEach(line => {
                     const fr = line.getAttribute("data-from-round");
                     const fs = line.getAttribute("data-from-slot");
-                    document.querySelectorAll(`.junction-dot[data-from-round="${fr}"][data-from-slot="${fs}"]`).forEach(d => d.classList.add("active"));
+                    if (fr !== null && fs !== null) {
+                        document.querySelectorAll(`.junction-dot[data-from-round="${fr}"][data-from-slot="${fs}"]`).forEach(d => d.classList.add("active"));
+                    }
                 });
             } else {
                 highlightSubtree(round, slot);
@@ -1059,7 +1346,21 @@
 
             if (teamId) {
                 const team = initialTeams.find(t => t.id === teamId) || { name: teamId };
-                tooltip.innerHTML = `<strong>${team.name}</strong> (${teamId})<br>Click to advance to next round` + matchInfoHtml;
+                const prevMatches = getPreviousMatchesForTeam(teamId);
+                let matchesHtml = `
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.15);">
+                        <strong style="color: var(--accent-gold); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Previous Matches:</strong>
+                `;
+                prevMatches.forEach(m => {
+                    matchesHtml += renderMatchLine(
+                        m.home, m.homeScore, m.awayScore, m.away,
+                        m.penaltyHome, m.penaltyAway,
+                        m.date, m.stage, teamId
+                    );
+                });
+                matchesHtml += `</div>`;
+
+                tooltip.innerHTML = `<strong>${team.name}</strong> (${teamId})<br>Click to advance to next round` + matchesHtml + matchInfoHtml;
             } else {
                 tooltip.innerHTML = `<em>Match Pending</em><br>Click winner of previous round to decide` + matchInfoHtml;
             }
@@ -1073,8 +1374,24 @@
 
         function handleMouseMove(e) {
             const tooltip = document.getElementById("tooltip");
-            tooltip.style.left = (e.pageX + 15) + "px";
-            tooltip.style.top = (e.pageY + 15) + "px";
+            const pad = 12;
+            const tw = tooltip.offsetWidth;
+            const th = tooltip.offsetHeight;
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+
+            // Horizontal: prefer right of cursor, flip left if overflows
+            let left = e.clientX + 15;
+            if (left + tw + pad > vw) left = e.clientX - tw - 15;
+            if (left < pad) left = pad;
+
+            // Vertical: prefer below cursor, flip above if overflows bottom
+            let top = e.clientY + 15;
+            if (top + th + pad > vh) top = e.clientY - th - 15;
+            if (top < pad) top = pad;
+
+            tooltip.style.left = left + "px";
+            tooltip.style.top = top + "px";
         }
 
         function clearHighlights() {
