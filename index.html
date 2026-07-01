@@ -532,6 +532,10 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
+        .live-match-banner, .live-match-teams, .live-team, .live-badge {
+            white-space: nowrap;
+        }
+
         .live-score-container {
             font-family: 'Inter', monospace;
             font-size: 16px;
@@ -542,6 +546,37 @@
             padding: 2px 10px;
             border-radius: 6px;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        /* Responsive styling for small mobile screens */
+        @media (max-width: 480px) {
+            .live-match-banner {
+                padding: 6px 16px;
+                gap: 10px;
+                top: 12px;
+            }
+            .live-match-teams {
+                gap: 8px;
+            }
+            .live-badge {
+                padding: 3px 8px;
+                font-size: 9px;
+                gap: 3px;
+            }
+            .live-team {
+                font-size: 11px;
+                gap: 4px;
+            }
+            .live-flag-icon {
+                width: 18px;
+                height: 12px;
+            }
+            .live-score-container {
+                font-size: 14px;
+                padding: 2px 6px;
+            }
         }
     </style>
 </head>
@@ -1923,7 +1958,7 @@
         // Poll UI score elements every 5 seconds for elapsed minute ticks
         setInterval(updateLiveScoreUI, 5000);
 
-        // Make Live Match Banner draggable by mouse
+        // Make Live Match Banner draggable by mouse or touch
         const liveBanner = document.getElementById("liveMatchBanner");
         if (liveBanner) {
             let isDragging = false;
@@ -1932,6 +1967,7 @@
 
             liveBanner.style.cursor = "grab";
 
+            // Mouse Dragging
             liveBanner.addEventListener("mousedown", (e) => {
                 // Only drag with left click
                 if (e.button !== 0) return;
@@ -1981,6 +2017,59 @@
                 if (isDragging) {
                     isDragging = false;
                     liveBanner.style.cursor = "grab";
+                }
+            });
+
+            // Touch Dragging for Mobile
+            liveBanner.addEventListener("touchstart", (e) => {
+                if (e.touches.length !== 1) return;
+
+                isDragging = true;
+                const touch = e.touches[0];
+                const rect = liveBanner.getBoundingClientRect();
+
+                // Position explicitly to absolute pixels and remove transform translate center
+                liveBanner.style.left = rect.left + "px";
+                liveBanner.style.top = rect.top + "px";
+                liveBanner.style.transform = "none";
+
+                startX = touch.clientX;
+                startY = touch.clientY;
+                initialLeft = rect.left;
+                initialTop = rect.top;
+
+                e.preventDefault(); // Prevent scrolling while starting drag
+            }, { passive: false });
+
+            document.addEventListener("touchmove", (e) => {
+                if (!isDragging) return;
+                if (e.touches.length !== 1) return;
+
+                const touch = e.touches[0];
+                const dx = touch.clientX - startX;
+                const dy = touch.clientY - startY;
+
+                let newLeft = initialLeft + dx;
+                let newTop = initialTop + dy;
+
+                const rect = liveBanner.getBoundingClientRect();
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+
+                if (newLeft < 0) newLeft = 0;
+                if (newLeft + rect.width > vw) newLeft = vw - rect.width;
+                if (newTop < 0) newTop = 0;
+                if (newTop + rect.height > vh) newTop = vh - rect.height;
+
+                liveBanner.style.left = newLeft + "px";
+                liveBanner.style.top = newTop + "px";
+
+                e.preventDefault(); // Prevent scrolling page while moving the widget
+            }, { passive: false });
+
+            document.addEventListener("touchend", () => {
+                if (isDragging) {
+                    isDragging = false;
                 }
             });
         }
