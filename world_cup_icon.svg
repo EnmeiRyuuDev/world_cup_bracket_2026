@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#f5e17a"/>
+      <stop offset="40%"  stop-color="#e4b429"/>
+      <stop offset="70%"  stop-color="#c8860a"/>
+      <stop offset="100%" stop-color="#f0d060"/>
+    </linearGradient>
+    <linearGradient id="baseGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#f0d060"/>
+      <stop offset="100%" stop-color="#b87a10"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Cup body -->
+  <path d="M34 14 Q32 38 28 46 Q22 56 26 64 Q30 72 50 72 Q70 72 74 64 Q78 56 72 46 Q68 38 66 14 Z"
+        fill="url(#goldGrad)" filter="url(#glow)"/>
+
+  <!-- Cup highlight sheen -->
+  <path d="M38 18 Q37 36 35 44 Q33 50 35 57"
+        fill="none" stroke="rgba(255,255,200,0.5)" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Left handle -->
+  <path d="M34 22 Q18 22 16 34 Q14 46 28 46"
+        fill="none" stroke="url(#goldGrad)" stroke-width="7" stroke-linecap="round"/>
+  <!-- Left handle inner -->
+  <path d="M34 22 Q22 22 20 34 Q18 44 28 46"
+        fill="none" stroke="rgba(255,240,120,0.4)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Right handle -->
+  <path d="M66 22 Q82 22 84 34 Q86 46 72 46"
+        fill="none" stroke="url(#goldGrad)" stroke-width="7" stroke-linecap="round"/>
+  <!-- Right handle inner -->
+  <path d="M66 22 Q78 22 80 34 Q82 44 72 46"
+        fill="none" stroke="rgba(255,240,120,0.4)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Stem -->
+  <rect x="44" y="72" width="12" height="10" rx="1" fill="url(#baseGrad)"/>
+
+  <!-- Base platform top -->
+  <rect x="30" y="82" width="40" height="5" rx="2.5" fill="url(#baseGrad)"/>
+  <!-- Base platform bottom -->
+  <rect x="26" y="87" width="48" height="5" rx="2.5" fill="url(#baseGrad)"/>
+
+  <!-- Globe on top of cup -->
+  <circle cx="50" cy="14" r="10" fill="url(#goldGrad)" filter="url(#glow)"/>
+  <!-- Globe meridian lines -->
+  <ellipse cx="50" cy="14" rx="10" ry="10" fill="none" stroke="rgba(180,120,0,0.5)" stroke-width="0.8"/>
+  <line x1="50" y1="4" x2="50" y2="24" stroke="rgba(180,120,0,0.5)" stroke-width="0.8"/>
+  <ellipse cx="50" cy="14" rx="5.5" ry="10" fill="none" stroke="rgba(180,120,0,0.5)" stroke-width="0.8"/>
+  <line x1="40" y1="14" x2="60" y2="14" stroke="rgba(180,120,0,0.5)" stroke-width="0.8"/>
+  <!-- Globe highlight -->
+  <circle cx="47" cy="11" r="2.5" fill="rgba(255,255,200,0.45)"/>
+</svg>
