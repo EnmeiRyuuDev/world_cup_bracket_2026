@@ -326,6 +326,36 @@
             }
         }
 
+        /* Green contour glow for ongoing matches */
+        .node-flag.glow-green .node-ring {
+            animation: greenContourPulse 1.2s infinite alternate;
+        }
+
+        .node-flag.glow-green:hover .flag-visual {
+            filter: drop-shadow(0px 0px 6px #00ff87);
+        }
+
+        .node-flag.glow-green:hover .node-ring {
+            animation: none;
+            stroke: #00ff87;
+            stroke-width: 3;
+            filter: drop-shadow(0px 0px 5px #00ff87) drop-shadow(0px 0px 10px #00b359);
+        }
+
+        @keyframes greenContourPulse {
+            0% { 
+                stroke: rgba(0, 255, 135, 0.7);
+                stroke-width: 2;
+                filter: drop-shadow(0px 0px 4px rgba(0, 255, 135, 0.5)); 
+            }
+            100% { 
+                stroke: rgba(0, 179, 89, 1);
+                stroke-width: 4;
+                filter: drop-shadow(0px 0px 10px #00ff87) drop-shadow(0px 0px 20px #00b359); 
+            }
+        }
+
+
         /* Slider control row */
         .slider-row {
             margin: 10px 0 4px;
@@ -483,7 +513,7 @@
                     aria-label="Disqualified team dimming intensity">
             </div>
             <div class="slider-row" style="display: flex; align-items: center; justify-content: space-between; margin-top: 15px;">
-                <label for="glowToggle" style="font-size: 12px; color: #aaa; font-weight: 600;">Highlight Next 24h Matches</label>
+                <label for="glowToggle" style="font-size: 12px; color: #aaa; font-weight: 600;">Highlight Ongoing & 24h Matches</label>
                 <input type="checkbox" id="glowToggle" checked style="accent-color: var(--accent-gold); cursor: pointer; width: 16px; height: 16px;">
             </div>
             <div class="instructions">
@@ -602,6 +632,7 @@
         presetResults['mar'] = { 'ned': 1 };
         presetResults['fra'] = { 'swe': 1 };
         presetResults['mex'] = { 'ecu': 1 };
+        presetResults['eng'] = { 'cod': 1 };
 
 
         // ────────────────────────────────────────────────────────────
@@ -845,12 +876,15 @@
                         }
 
                         let isGlowingBlue = false;
+                        let isGlowingGreen = false;
                         if (!isEliminated && shouldGlow) {
                             const matchData = matchDetails[r] ? matchDetails[r][Math.floor(s / 2)] : null;
                             if (matchData) {
                                 const matchTime = new Date(matchData.datetime).getTime();
                                 const now = Date.now();
-                                if (matchTime >= now && matchTime <= now + 24 * 60 * 60 * 1000) {
+                                if (now >= matchTime && now <= matchTime + 115 * 60 * 1000) {
+                                    isGlowingGreen = true;
+                                } else if (matchTime > now && matchTime <= now + 24 * 60 * 60 * 1000) {
                                     isGlowingBlue = true;
                                 }
                             }
@@ -858,6 +892,7 @@
 
                         let classNames = "node-flag";
                         if (isEliminated) classNames += " eliminated";
+                        else if (isGlowingGreen) classNames += " glow-green";
                         else if (isGlowingBlue) classNames += " glow-blue";
 
                         g.setAttribute("class", classNames);
@@ -1271,6 +1306,7 @@
                 { home: "POR", away: "COD", homeScore: 1, awayScore: 1,                              date: "Jun 17", stage: "Group K" }
             ],
             "COD": [
+                { home: "ENG", away: "COD", homeScore: 2, awayScore: 1,                              date: "Jul 1", stage: "R32"     },
                 { home: "COD", away: "UZB", homeScore: 3, awayScore: 1,                              date: "Jun 27", stage: "Group K" },
                 { home: "COL", away: "COD", homeScore: 1, awayScore: 0,                              date: "Jun 23", stage: "Group K" },
                 { home: "POR", away: "COD", homeScore: 1, awayScore: 1,                              date: "Jun 17", stage: "Group K" }
@@ -1282,6 +1318,7 @@
             ],
             // ── Group L teams ─────────────────────────────────────────
             "ENG": [
+                { home: "ENG", away: "COD", homeScore: 2, awayScore: 1,                              date: "Jul 1", stage: "R32"     },
                 { home: "PAN", away: "ENG", homeScore: 0, awayScore: 2,                              date: "Jun 27", stage: "Group L" },
                 { home: "ENG", away: "GHA", homeScore: 0, awayScore: 0,                              date: "Jun 23", stage: "Group L" },
                 { home: "ENG", away: "CRO", homeScore: 4, awayScore: 2,                              date: "Jun 17", stage: "Group L" }
