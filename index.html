@@ -1900,9 +1900,9 @@
                     const match = matchDetails[r] ? matchDetails[r][s] : null;
                     if (!match) continue;
 
-                    // Check if match is finished (older than start time + 3 hours)
+                    // Check if match has started (elapsed > 0)
                     const elapsedMs = Date.now() - new Date(match.datetime).getTime();
-                    if (elapsedMs <= 180 * 60 * 1000) continue;
+                    if (elapsedMs <= 0) continue;
 
                     const idA = teamA.id.toLowerCase();
                     const idB = teamB.id.toLowerCase();
@@ -2371,11 +2371,13 @@
             checkFinishedMatches();
         });
 
-        // Poll finished matches check every 5 minutes
-        setInterval(checkFinishedMatches, 300000);
-
-        // Poll real-time API scores every 30 seconds
-        setInterval(fetchLiveScores, 30000);
+        // Poll real-time API scores every 30 seconds, then check for finished matches
+        setInterval(() => {
+            fetchLiveScores().then(() => {
+                updateLiveScoreUI();
+                checkFinishedMatches();
+            });
+        }, 30000);
 
         // Poll UI score elements every 5 seconds for elapsed minute ticks
         setInterval(updateLiveScoreUI, 5000);
