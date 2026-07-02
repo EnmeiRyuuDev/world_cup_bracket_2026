@@ -935,6 +935,8 @@
         presetResults['fra'] = { 'swe': 1 };
         presetResults['mex'] = { 'ecu': 1 };
         presetResults['eng'] = { 'cod': 1 };
+        presetResults['bel'] = { 'sen': 1 };
+        presetResults['usa'] = { 'bih': 1 };
 
 
         // ────────────────────────────────────────────────────────────
@@ -1477,6 +1479,7 @@
                 { home: "CAN", away: "BIH", homeScore: 1, awayScore: 1, date: "Jun 12", stage: "Group B" }
             ],
             "BIH": [
+                { home: "USA", away: "BIH", homeScore: 2, awayScore: 0, date: "Jul 1", stage: "R32" },
                 { home: "BIH", away: "QAT", homeScore: 3, awayScore: 1, date: "Jun 24", stage: "Group B" },
                 { home: "SUI", away: "BIH", homeScore: 4, awayScore: 1, date: "Jun 18", stage: "Group B" },
                 { home: "CAN", away: "BIH", homeScore: 1, awayScore: 1, date: "Jun 12", stage: "Group B" }
@@ -1496,6 +1499,7 @@
             ],
             // ── Group D teams ─────────────────────────────────────────
             "USA": [
+                { home: "USA", away: "BIH", homeScore: 2, awayScore: 0, date: "Jul 1", stage: "R32" },
                 { home: "TUR", away: "USA", homeScore: 3, awayScore: 2, date: "Jun 25", stage: "Group D" },
                 { home: "USA", away: "AUS", homeScore: 2, awayScore: 0, date: "Jun 19", stage: "Group D" },
                 { home: "USA", away: "PAR", homeScore: 4, awayScore: 1, date: "Jun 12", stage: "Group D" }
@@ -1551,6 +1555,7 @@
             ],
             // ── Group G teams ─────────────────────────────────────────
             "BEL": [
+                { home: "BEL", away: "SEN", homeScore: 3, awayScore: 2, aet: true, date: "Jul 1", stage: "R32" },
                 { home: "NZL", away: "BEL", homeScore: 1, awayScore: 5, date: "Jun 26", stage: "Group G" },
                 { home: "BEL", away: "IRN", homeScore: 0, awayScore: 0, date: "Jun 21", stage: "Group G" },
                 { home: "BEL", away: "EGY", homeScore: 1, awayScore: 1, date: "Jun 15", stage: "Group G" }
@@ -1585,6 +1590,7 @@
                 { home: "IRQ", away: "NOR", homeScore: 1, awayScore: 4, date: "Jun 16", stage: "Group I" }
             ],
             "SEN": [
+                { home: "BEL", away: "SEN", homeScore: 3, awayScore: 2, aet: true, date: "Jul 1", stage: "R32" },
                 { home: "SEN", away: "IRQ", homeScore: 5, awayScore: 0, date: "Jun 26", stage: "Group I" },
                 { home: "NOR", away: "SEN", homeScore: 3, awayScore: 2, date: "Jun 22", stage: "Group I" },
                 { home: "FRA", away: "SEN", homeScore: 3, awayScore: 1, date: "Jun 16", stage: "Group I" }
@@ -1651,12 +1657,15 @@
             return teamMatchHistory[teamId] || [];
         }
 
-        function renderMatchLine(homeId, homeScore, awayScore, awayId, penaltyHome, penaltyAway, dateLabel, stageLabel, viewedTeam) {
+        function renderMatchLine(homeId, homeScore, awayScore, awayId, penaltyHome, penaltyAway, dateLabel, stageLabel, viewedTeam, aet) {
             const homeFlag = getTeamFlag(homeId);
             const awayFlag = getTeamFlag(awayId);
             const homeFlagHtml = `<img src="https://flagcdn.com/w40/${homeFlag}.png" style="width: 18px; height: 12px; object-fit: cover; vertical-align: middle; border: 1px solid rgba(255,255,255,0.15); border-radius: 2px;" alt="${homeId}">`;
             const awayFlagHtml = `<img src="https://flagcdn.com/w40/${awayFlag}.png" style="width: 18px; height: 12px; object-fit: cover; vertical-align: middle; border: 1px solid rgba(255,255,255,0.15); border-radius: 2px;" alt="${awayId}">`;
             let scoreStr = `${homeScore} \u2013 ${awayScore}`;
+            if (aet) {
+                scoreStr += ` <span style="font-size:9px;color:#aaa">(a.e.t.)</span>`;
+            }
             if (penaltyHome !== undefined && penaltyAway !== undefined) {
                 scoreStr += ` <span style="font-size:9px;color:#aaa">(${penaltyHome}-${penaltyAway}p)</span>`;
             }
@@ -1809,7 +1818,7 @@
                     matchesHtml += renderMatchLine(
                         m.home, m.homeScore, m.awayScore, m.away,
                         m.penaltyHome, m.penaltyAway,
-                        m.date, m.stage, teamId
+                        m.date, m.stage, teamId, m.aet
                     );
                 });
                 matchesHtml += `</div>`;
