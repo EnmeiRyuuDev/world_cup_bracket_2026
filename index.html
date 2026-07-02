@@ -599,6 +599,88 @@
                 padding: 2px 6px;
             }
         }
+
+        /* Match Labels */
+        .match-label-bg {
+            fill: rgba(11, 12, 16, 0.95);
+            stroke-width: 1px;
+            filter: drop-shadow(0px 2px 5px rgba(0, 0, 0, 0.6));
+            transition: all 0.3s ease;
+        }
+
+        .match-label-text {
+            font-family: 'Inter', system-ui, sans-serif;
+            user-select: none;
+            pointer-events: none;
+            transition: fill 0.3s ease;
+        }
+
+        .match-label-g {
+            cursor: pointer;
+        }
+
+        .match-label-g rect, .match-label-g text {
+            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: 0px 0px;
+        }
+
+        .match-label-g:hover rect, .match-label-g:hover text {
+            transform: scale(1.25);
+        }
+
+        /* Next 24h styling (blue) */
+        .match-label-g.next-24h .match-label-bg {
+            stroke: rgba(0, 229, 255, 0.25);
+            animation: blueBoxPulse 1.2s infinite alternate ease-in-out;
+        }
+
+        @keyframes blueBoxPulse {
+            0% {
+                stroke: rgba(0, 229, 255, 0.25);
+                filter: drop-shadow(0px 2px 5px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 2px rgba(0, 229, 255, 0.15));
+            }
+            100% {
+                stroke: rgba(0, 229, 255, 0.8);
+                filter: drop-shadow(0px 2px 5px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 6px rgba(0, 229, 255, 0.45));
+            }
+        }
+
+        .match-label-g.next-24h:hover .match-label-bg {
+            stroke: rgba(0, 229, 255, 1);
+            fill: rgba(20, 22, 26, 0.98);
+            animation: none;
+        }
+
+        .match-label-g.next-24h .match-label-text {
+            fill: #00e5ff;
+        }
+
+        /* Live ongoing match styling (green) */
+        .match-label-g.live-ongoing .match-label-bg {
+            stroke: rgba(0, 255, 135, 0.3);
+            animation: liveBoxPulse 1.2s infinite alternate ease-in-out;
+        }
+
+        @keyframes liveBoxPulse {
+            0% {
+                stroke: rgba(0, 255, 135, 0.3);
+                filter: drop-shadow(0px 2px 5px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 2px rgba(0, 255, 135, 0.15));
+            }
+            100% {
+                stroke: rgba(0, 255, 135, 0.8);
+                filter: drop-shadow(0px 2px 5px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 6px rgba(0, 255, 135, 0.45));
+            }
+        }
+
+        .match-label-g.live-ongoing:hover .match-label-bg {
+            stroke: rgba(0, 255, 135, 1);
+            fill: rgba(20, 22, 26, 0.98);
+            animation: none;
+        }
+
+        .match-label-g.live-ongoing .match-label-text {
+            fill: #00ff87;
+        }
     </style>
 </head>
 
@@ -670,6 +752,7 @@
 
             <g id="linksGroup"></g>
             <g id="junctionDotsGroup"></g>
+            <g id="matchLabelsGroup"></g>
             <g id="nodesGroup"></g>
 
             <!-- Center Trophy -->
@@ -942,6 +1025,9 @@
                     activeTooltipData.round,
                     activeTooltipData.slot
                 );
+            }
+            if (typeof updateMatchCountdowns === "function") {
+                updateMatchCountdowns();
             }
         }
 
@@ -1463,6 +1549,106 @@
             } else {
                 winnerGroup.style.display = "none";
                 trophyGroup.style.display = "block";
+            }
+
+            // ── 4. Draw Match Labels for Future Matches ──────────────
+            const matchLabelsGroup = document.getElementById("matchLabelsGroup");
+            if (matchLabelsGroup) {
+                matchLabelsGroup.innerHTML = "";
+
+                const now = Date.now();
+                const dateOptions = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
+
+                for (let r = 0; r < 5; r++) {
+                    const count = Math.pow(2, 5 - r) / 2;
+                    for (let m = 0; m < count; m++) {
+                        const match = matchDetails[r] ? matchDetails[r][m] : null;
+                        if (!match) continue;
+
+                        const matchTime = new Date(match.datetime).getTime();
+                        const isDecided = state.rounds[r][2 * m] !== null && state.rounds[r][2 * m + 1] !== null;
+                        const liveState = getMatchLiveState(r, m);
+                        const isInNext24Hours = matchTime > now && matchTime <= now + 24 * 60 * 60 * 1000;
+
+                        const glowToggleEl = document.getElementById("glowToggle");
+                        const shouldShowLabels = glowToggleEl ? glowToggleEl.checked : true;
+
+                        const isVisible = shouldShowLabels && isDecided && (liveState !== null || isInNext24Hours);
+
+                        // Midpoint angle
+                        let thetaMid;
+                        if (r < 4) {
+                            thetaMid = angles[r + 1][m];
+                        } else {
+                            thetaMid = -Math.PI / 2;
+                        }
+
+                        // Label position radius
+                        let rLabel;
+                        if (r === 0) rLabel = 428;
+                        else if (r === 1) rLabel = 330;
+                        else if (r === 2) rLabel = 248;
+                        else if (r === 3) rLabel = 168;
+                        else rLabel = 145;
+
+                        let x, y;
+                        let angleDeg;
+
+                        if (r < 4) {
+                            x = 500 + rLabel * Math.cos(thetaMid);
+                            y = 500 + rLabel * Math.sin(thetaMid);
+                            angleDeg = (thetaMid * 180) / Math.PI;
+                            // Normalize
+                            angleDeg = ((angleDeg + 180) % 360 + 360) % 360 - 180;
+                            // Flip if upside down
+                            if (angleDeg > 90 || angleDeg < -90) {
+                                angleDeg = angleDeg > 0 ? angleDeg - 180 : angleDeg + 180;
+                            }
+                        } else {
+                            // Final match placed horizontally above the center trophy
+                            x = 500;
+                            y = 362;
+                            angleDeg = 0;
+                        }
+
+                        const dateStr = new Date(match.datetime).toLocaleString(undefined, dateOptions);
+                        const labelText = liveState ? "LIVE" : dateStr;
+                        const labelClass = liveState ? "match-label-g live-ongoing" : "match-label-g next-24h";
+
+                        const gLabel = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                        gLabel.setAttribute("id", `match-label-g-${r}-${m}`);
+                        gLabel.setAttribute("class", labelClass);
+                        gLabel.setAttribute("transform", `translate(${x}, ${y}) rotate(${angleDeg})`);
+                        gLabel.style.display = isVisible ? "block" : "none";
+
+                        const rectWidth = liveState ? 60 : 102;
+                        const rectHeight = 24;
+
+                        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                        rect.setAttribute("x", -rectWidth / 2);
+                        rect.setAttribute("y", -rectHeight / 2);
+                        rect.setAttribute("width", rectWidth);
+                        rect.setAttribute("height", rectHeight);
+                        rect.setAttribute("rx", 5);
+                        rect.setAttribute("ry", 5);
+                        rect.setAttribute("class", "match-label-bg");
+                        gLabel.appendChild(rect);
+
+                        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        text.setAttribute("x", 0);
+                        text.setAttribute("y", 0);
+                        text.setAttribute("text-anchor", "middle");
+                        text.setAttribute("dominant-baseline", "middle");
+                        text.setAttribute("class", "match-label-text");
+                        text.setAttribute("font-size", "14px");
+                        text.setAttribute("font-weight", "800");
+                        text.setAttribute("dy", "1.5px");
+                        text.textContent = labelText;
+
+                        gLabel.appendChild(text);
+                        matchLabelsGroup.appendChild(gLabel);
+                    }
+                }
             }
         }
 
@@ -2132,6 +2318,48 @@
         const glowToggle = document.getElementById("glowToggle");
         if (glowToggle) {
             glowToggle.addEventListener("change", render);
+        }
+
+        function updateMatchCountdowns() {
+            const now = Date.now();
+            const glowToggleEl = document.getElementById("glowToggle");
+            const shouldShowLabels = glowToggleEl ? glowToggleEl.checked : true;
+
+            for (let r = 0; r < 5; r++) {
+                const count = Math.pow(2, 5 - r) / 2;
+                for (let m = 0; m < count; m++) {
+                    const match = matchDetails[r] ? matchDetails[r][m] : null;
+                    if (!match) continue;
+                    const matchTime = new Date(match.datetime).getTime();
+                    const container = document.getElementById(`match-label-g-${r}-${m}`);
+                    if (container) {
+                        const isDecided = state.rounds[r][2 * m] !== null && state.rounds[r][2 * m + 1] !== null;
+                        const liveState = getMatchLiveState(r, m);
+                        const isInNext24Hours = matchTime > now && matchTime <= now + 24 * 60 * 60 * 1000;
+                        const isVisible = shouldShowLabels && isDecided && (liveState !== null || isInNext24Hours);
+                        container.style.display = isVisible ? "block" : "none";
+                        if (isVisible) {
+                            const textEl = container.querySelector(".match-label-text");
+                            const rectEl = container.querySelector("rect");
+                            if (textEl && rectEl) {
+                                if (liveState) {
+                                    textEl.textContent = "LIVE";
+                                    container.setAttribute("class", "match-label-g live-ongoing");
+                                    rectEl.setAttribute("width", "60");
+                                    rectEl.setAttribute("x", "-30");
+                                } else {
+                                    const dateOptions = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
+                                    const dateStr = new Date(match.datetime).toLocaleString(undefined, dateOptions);
+                                    textEl.textContent = dateStr;
+                                    container.setAttribute("class", "match-label-g next-24h");
+                                    rectEl.setAttribute("width", "102");
+                                    rectEl.setAttribute("x", "-51");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         init();
