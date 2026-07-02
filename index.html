@@ -285,6 +285,19 @@
             background: #c9302c;
         }
 
+        .btn-blue {
+            background: #0056b3;
+            color: #ffffff;
+            border: 1px solid rgba(0, 191, 255, 0.4);
+            box-shadow: 0 0 10px rgba(0, 88, 255, 0.25);
+        }
+
+        .btn-blue:hover {
+            background: #0069d9;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.5);
+            border-color: #00e5ff;
+        }
+
         /* Eliminated team dimming */
         .node-flag.eliminated .flag-visual {
             filter: grayscale(calc(var(--eliminated-grayscale) * 100%)) opacity(var(--eliminated-opacity)) !important;
@@ -532,7 +545,10 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
-        .live-match-banner, .live-match-teams, .live-team, .live-badge {
+        .live-match-banner,
+        .live-match-teams,
+        .live-team,
+        .live-badge {
             white-space: nowrap;
         }
 
@@ -557,22 +573,27 @@
                 gap: 10px;
                 top: 12px;
             }
+
             .live-match-teams {
                 gap: 8px;
             }
+
             .live-badge {
                 padding: 3px 8px;
                 font-size: 9px;
                 gap: 3px;
             }
+
             .live-team {
                 font-size: 11px;
                 gap: 4px;
             }
+
             .live-flag-icon {
                 width: 18px;
                 height: 12px;
             }
+
             .live-score-container {
                 font-size: 14px;
                 padding: 2px 6px;
@@ -665,7 +686,8 @@
             <button class="panel-toggle" id="panelToggle">⚙</button>
             <h3>Controls</h3>
             <button class="btn btn-secondary" id="simulateBtn">Quick Simulate</button>
-            <button class="btn btn-danger" id="resetBtn">Reset Bracket</button>
+            <button class="btn btn-blue" id="resetBtn">Reset To Live Bracket</button>
+            <button class="btn btn-danger" id="clearBtn">Clear Bracket</button>
 
 
 
@@ -781,7 +803,8 @@
         // ─── State ──────────────────────────────────────────────────
         const state = {
             rounds: [[], [], [], [], []],
-            winner: null
+            winner: null,
+            isCleared: false
         };
 
         let lastClickedRound = null;
@@ -828,12 +851,12 @@
                 // API is available: check if the match is marked as live and has valid score
                 const apiGame = apiGames.find(g => g.id == match.number);
                 if (apiGame) {
-                    const isLive = apiGame.time_elapsed !== "notstarted" && 
-                                   apiGame.finished !== "TRUE" && 
-                                   apiGame.time_elapsed !== "finished" && 
-                                   apiGame.time_elapsed !== "Finished" &&
-                                   apiGame.home_score !== null && apiGame.home_score !== "null" &&
-                                   apiGame.away_score !== null && apiGame.away_score !== "null";
+                    const isLive = apiGame.time_elapsed !== "notstarted" &&
+                        apiGame.finished !== "TRUE" &&
+                        apiGame.time_elapsed !== "finished" &&
+                        apiGame.time_elapsed !== "Finished" &&
+                        apiGame.home_score !== null && apiGame.home_score !== "null" &&
+                        apiGame.away_score !== null && apiGame.away_score !== "null";
                     if (isLive) {
                         return {
                             matchNumber: match.number,
@@ -970,31 +993,33 @@
             state.winner = null;
 
             // Engine parsing match matrix settings automatically
-            for (let r = 0; r < 4; r++) {
-                const count = Math.pow(2, 4 - r);
-                for (let i = 0; i < count; i++) {
-                    const tA = state.rounds[r][2 * i];
-                    const tB = state.rounds[r][2 * i + 1];
-                    if (tA && tB) {
-                        const idA = tA.id.toLowerCase();
-                        const idB = tB.id.toLowerCase();
-                        if (presetResults[idA] && presetResults[idA][idB] === 1) {
-                            state.rounds[r + 1][i] = tA;
-                        } else if (presetResults[idB] && presetResults[idB][idA] === 1) {
-                            state.rounds[r + 1][i] = tB;
+            if (!state.isCleared) {
+                for (let r = 0; r < 4; r++) {
+                    const count = Math.pow(2, 4 - r);
+                    for (let i = 0; i < count; i++) {
+                        const tA = state.rounds[r][2 * i];
+                        const tB = state.rounds[r][2 * i + 1];
+                        if (tA && tB) {
+                            const idA = tA.id.toLowerCase();
+                            const idB = tB.id.toLowerCase();
+                            if (presetResults[idA] && presetResults[idA][idB] === 1) {
+                                state.rounds[r + 1][i] = tA;
+                            } else if (presetResults[idB] && presetResults[idB][idA] === 1) {
+                                state.rounds[r + 1][i] = tB;
+                            }
                         }
                     }
                 }
-            }
 
-            // Check overall champion placement matches
-            const fA = state.rounds[4][0];
-            const fB = state.rounds[4][1];
-            if (fA && fB) {
-                const idA = fA.id.toLowerCase();
-                const idB = fB.id.toLowerCase();
-                if (presetResults[idA] && presetResults[idA][idB] === 1) state.winner = fA;
-                else if (presetResults[idB] && presetResults[idB][idA] === 1) state.winner = fB;
+                // Check overall champion placement matches
+                const fA = state.rounds[4][0];
+                const fB = state.rounds[4][1];
+                if (fA && fB) {
+                    const idA = fA.id.toLowerCase();
+                    const idB = fB.id.toLowerCase();
+                    if (presetResults[idA] && presetResults[idA][idB] === 1) state.winner = fA;
+                    else if (presetResults[idB] && presetResults[idB][idA] === 1) state.winner = fB;
+                }
             }
 
             precalculateAngles();
@@ -1657,6 +1682,146 @@
             return teamMatchHistory[teamId] || [];
         }
 
+        function addHistoryEntryIfMissing(teamId, entry) {
+            if (!teamMatchHistory[teamId]) {
+                teamMatchHistory[teamId] = [];
+            }
+            const exists = teamMatchHistory[teamId].some(m =>
+                m.stage === entry.stage &&
+                ((m.home === entry.home && m.away === entry.away) || (m.home === entry.away && m.away === entry.home))
+            );
+            if (!exists) {
+                teamMatchHistory[teamId].unshift({ ...entry });
+            }
+        }
+
+        function checkFinishedMatches() {
+            if (state.isCleared) return;
+            let updated = false;
+
+            // Loop through rounds sequentially so that winners of previous rounds advance and populate the teams for the next rounds
+            for (let r = 0; r < 5; r++) {
+                // Re-initialize state based on current presetResults
+                init();
+
+                const count = Math.pow(2, 5 - r) / 2;
+                for (let s = 0; s < count; s++) {
+                    const teamA = state.rounds[r][2 * s];
+                    const teamB = state.rounds[r][2 * s + 1];
+
+                    if (!teamA || !teamB) continue;
+
+                    const match = matchDetails[r] ? matchDetails[r][s] : null;
+                    if (!match) continue;
+
+                    // Check if match is finished (older than start time + 3 hours)
+                    const elapsedMs = Date.now() - new Date(match.datetime).getTime();
+                    if (elapsedMs <= 180 * 60 * 1000) continue;
+
+                    const idA = teamA.id.toLowerCase();
+                    const idB = teamB.id.toLowerCase();
+
+                    // Check if presetResults is already filled for this match
+                    const isPresetFilled = (presetResults[idA] && presetResults[idA][idB] === 1) ||
+                        (presetResults[idB] && presetResults[idB][idA] === 1);
+                    if (isPresetFilled) continue;
+
+                    // Look up match in apiGames
+                    const apiGame = apiGames.find(g => g.id == match.number);
+                    if (!apiGame) continue;
+
+                    const isFinished = apiGame.finished === "TRUE" ||
+                        apiGame.time_elapsed === "finished" ||
+                        apiGame.time_elapsed === "Finished";
+                    if (!isFinished) continue;
+
+                    // Get scores
+                    const homeScore = parseInt(apiGame.home_score);
+                    const awayScore = parseInt(apiGame.away_score);
+                    if (isNaN(homeScore) || isNaN(awayScore)) continue;
+
+                    // Check penalties
+                    const apiHomePen = apiGame.home_penalty_score;
+                    const apiAwayPen = apiGame.away_penalty_score;
+                    const hasPenalties = apiHomePen !== null && apiHomePen !== "null" && apiAwayPen !== null && apiAwayPen !== "null";
+                    const penaltyHome = hasPenalties ? parseInt(apiHomePen) : undefined;
+                    const penaltyAway = hasPenalties ? parseInt(apiAwayPen) : undefined;
+
+                    // Determine winner and loser
+                    let winner, loser;
+                    if (hasPenalties) {
+                        if (penaltyHome > penaltyAway) {
+                            winner = teamA;
+                            loser = teamB;
+                        } else {
+                            winner = teamB;
+                            loser = teamA;
+                        }
+                    } else {
+                        if (homeScore > awayScore) {
+                            winner = teamA;
+                            loser = teamB;
+                        } else {
+                            winner = teamB;
+                            loser = teamA;
+                        }
+                    }
+
+                    // Update presetResults
+                    const winId = winner.id.toLowerCase();
+                    const losId = loser.id.toLowerCase();
+                    if (!presetResults[winId]) presetResults[winId] = {};
+                    presetResults[winId][losId] = 1;
+
+                    // Determine aet (after extra time)
+                    let aet = false;
+                    if (!hasPenalties) {
+                        const homeScorers = apiGame.home_scorers || "";
+                        const awayScorers = apiGame.away_scorers || "";
+                        aet = /\b(9[1-9]|1[0-2][0-9])'/.test(homeScorers) || /\b(9[1-9]|1[0-2][0-9])'/.test(awayScorers) ||
+                            /\b(9[1-9]|1[0-2][0-9])\(P\)'/.test(homeScorers) || /\b(9[1-9]|1[0-2][0-9])\(P\)'/.test(awayScorers);
+                    }
+
+                    // Get date label
+                    const matchDate = new Date(match.datetime);
+                    const dateLabel = matchDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                    // Stage labels
+                    const stageLabels = ["R32", "R16", "QF", "SF", "Final"];
+                    const stageLabel = stageLabels[r] || "Knockout";
+
+                    // Create history entry
+                    const historyEntry = {
+                        home: teamA.id,
+                        away: teamB.id,
+                        homeScore: homeScore,
+                        awayScore: awayScore,
+                        date: dateLabel,
+                        stage: stageLabel
+                    };
+                    if (hasPenalties) {
+                        historyEntry.penaltyHome = penaltyHome;
+                        historyEntry.penaltyAway = penaltyAway;
+                    }
+                    if (aet) {
+                        historyEntry.aet = true;
+                    }
+
+                    // Update history for both teams
+                    addHistoryEntryIfMissing(teamA.id, historyEntry);
+                    addHistoryEntryIfMissing(teamB.id, historyEntry);
+
+                    updated = true;
+                }
+            }
+
+            if (updated) {
+                init();
+                render();
+                updateLiveScoreUI();
+            }
+        }
+
         function renderMatchLine(homeId, homeScore, awayScore, awayId, penaltyHome, penaltyAway, dateLabel, stageLabel, viewedTeam, aet) {
             const homeFlag = getTeamFlag(homeId);
             const awayFlag = getTeamFlag(awayId);
@@ -1919,8 +2084,22 @@
             render();
         });
 
-        document.getElementById("simulateBtn").addEventListener("click", quickSimulate);
-        document.getElementById("resetBtn").addEventListener("click", () => { init(); render(); updateLiveScoreUI(); });
+        document.getElementById("simulateBtn").addEventListener("click", () => {
+            state.isCleared = true; // Avoid presets overriding simulation on next background check
+            quickSimulate();
+        });
+        document.getElementById("resetBtn").addEventListener("click", () => {
+            state.isCleared = false;
+            init();
+            render();
+            updateLiveScoreUI();
+        });
+        document.getElementById("clearBtn").addEventListener("click", () => {
+            state.isCleared = true;
+            init();
+            render();
+            updateLiveScoreUI();
+        });
 
         document.addEventListener("click", () => {
             clearHighlights();
@@ -1958,8 +2137,14 @@
         init();
         render();
 
-        // Fetch real-time API scores on load
-        fetchLiveScores().then(updateLiveScoreUI);
+        // Fetch real-time API scores on load, update UI, and run finished matches check
+        fetchLiveScores().then(() => {
+            updateLiveScoreUI();
+            checkFinishedMatches();
+        });
+
+        // Poll finished matches check every 5 minutes
+        setInterval(checkFinishedMatches, 300000);
 
         // Poll real-time API scores every 30 seconds
         setInterval(fetchLiveScores, 30000);
